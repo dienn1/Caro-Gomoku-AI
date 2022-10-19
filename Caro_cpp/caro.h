@@ -1,44 +1,118 @@
 #ifndef CARO_CPP_CARO_H
 #define CARO_CPP_CARO_H
 
+
 #include <set>
 #include <unordered_set>
+#include <string>
+#include <utility>
+#include <iostream>
+#include <algorithm>
+#include <random>
 
-using namespace std;
+
+struct Point
+{
+private:
+    int X;
+    int Y;
+public:
+    Point(int x, int y): X(x), Y(y) {}
+    Point(): X(0), Y(0) {}
+
+    [[nodiscard]] std::string to_string() const
+    {
+        return "(" + std::to_string(X) + ", " + std::to_string(Y) + ")";
+    }
+
+    bool operator==(const Point& p) const
+    {
+        return X == p.X && Y == p.Y;
+    }
+
+    bool operator<(const Point& p) const
+    {
+        return (X < p.X) || (X <= p.X && (Y < p.Y));
+    }
+
+    Point operator+(const Point& other) const
+    {
+        return Point(X + other(0), Y + other(1));
+    }
+
+    Point operator-(const Point& other) const
+    {
+        return Point(X - other(0), Y - other(1));
+    }
+
+    int operator()(int i) const
+    {
+        if (i == 0){ return X;}
+        else { return Y; }
+    }
+};
+
+struct PointHashFunction
+{
+    size_t operator()(const Point& p) const
+    {
+        return ((size_t)p(0))<<3 | p(1);
+    }
+};
 
 class Caro
 {
+public:
+    explicit Caro(int _dim=19);
+
+    std::string to_string();
+
+    [[nodiscard]] bool in_bound(Point pos) const;
+    [[nodiscard]] bool is_unoccupied(Point pos) const;
+
+    [[nodiscard]] std::set<Point> get_moves() const { return AI_moves; }
+
+    [[nodiscard]] int get_state() const { return game_state; }
+
+    [[nodiscard]] bool has_ended() const { return game_ended; }
+
+    bool play(Point pos);
+
+    Point get_random_move();
+
+    void simulate(int n_turns=-1);
+
+//    std::string AI_moves_str()
+//    {
+//        std::string res = "{ ";
+//        for (Point const& p : AI_moves)
+//        {
+//            res += p.to_string() + ", ";
+//        }
+//        res += "}";
+//        return res;
+//    }
+//
+
+    std::set<Point> get_AI_moves() { return AI_moves;}
+
 private:
     int COUNT, turn_count, dim, size, game_state, turn;
-    int board[30][30];
-    int prev_move[2];
+    int board[30][30] = {}; // Empty board (all zeros), 30x30 is the max size
+    Point prev_move;
     bool game_ended;
-    unordered_set<int*> AI_moves;
+    std::set<Point> AI_moves;
 
     void generate_AI_moves(int n=2);
 
     void check_win();
 
-    int* count_line(int* pos, int* inc);
-    bool check_line(int* pos, int* dir1, int* dir2);
-    bool check_vertical(int* pos);
-    bool check_horizontal(int* pos);
-    bool check_diagonal(int* pos);
+    std::pair<int, bool> count_line(Point pos, Point inc);
+    bool check_line(Point pos, Point dir1, Point dir2);
+    bool check_vertical(Point pos);
+    bool check_horizontal(Point pos);
+    bool check_diagonal(Point pos);
 
-
-public:
-    bool in_bound(int* pos);
-    bool is_unoccupied(int* pos);
-
-    unordered_set<int*> get_moves() const { return AI_moves; }
-
-    int get_state() const { return game_state; }
-
-    bool has_ended() const { return game_ended; }
-
-    bool play(int* pos);
-
-    void simulate(int n=-1);
 
 };
 

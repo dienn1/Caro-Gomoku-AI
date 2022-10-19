@@ -1,3 +1,4 @@
 # ninja log v5
-0	437	6877741470200256	CMakeFiles/Caro_cpp.dir/main.cpp.obj	f29dc0a7ea1b47c2
-440	623	6877741472021595	Caro_cpp.exe	574376069c2d004d
+8	909	6879196310175610	CMakeFiles/Caro_cpp.dir/caro.cpp.obj	bf0d3474b56c942d
+3	817	6879196309242609	CMakeFiles/Caro_cpp.dir/main.cpp.obj	f29dc0a7ea1b47c2
+909	1118	6879196312228235	Caro_cpp.exe	974d4317ea4d7493
