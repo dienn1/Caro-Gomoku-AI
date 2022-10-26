@@ -9,7 +9,10 @@
 #include <iostream>
 #include <algorithm>
 #include <random>
-
+#include <stack>
+#include <iterator>
+#include "constants.h"
+using namespace constants;
 
 struct Point
 {
@@ -37,12 +40,12 @@ public:
 
     Point operator+(const Point& other) const
     {
-        return Point(X + other(0), Y + other(1));
+        return {X + other(0), Y + other(1)};
     }
 
     Point operator-(const Point& other) const
     {
-        return Point(X - other(0), Y - other(1));
+        return {X - other(0), Y - other(1)};
     }
 
     int operator()(int i) const
@@ -56,7 +59,7 @@ struct PointHashFunction
 {
     size_t operator()(const Point& p) const
     {
-        return ((size_t)p(0))<<3 | p(1);
+        return ((size_t)p(0))<<2 | p(1);
     }
 };
 
@@ -72,15 +75,25 @@ public:
 
     [[nodiscard]] std::set<Point> get_moves() const { return AI_moves; }
 
+    [[nodiscard]] Point get_prev_move() const {return prev_move; }
+
     [[nodiscard]] int get_state() const { return game_state; }
 
     [[nodiscard]] bool has_ended() const { return game_ended; }
 
+    [[nodiscard]] int current_turn() const { return player; }
+
+    void disable_print() {print = false;}
+    void enable_print() {print = true;}
+
     bool play(Point pos);
+
+    void undo();
 
     Point get_random_move();
 
     void simulate(int n_turns=-1);
+
 
 //    std::string AI_moves_str()
 //    {
@@ -94,14 +107,19 @@ public:
 //    }
 //
 
-    std::set<Point> get_AI_moves() { return AI_moves;}
+    [[nodiscard]] std::set<Point> get_AI_moves() const { return AI_moves;}
+    [[nodiscard]] std::stack<std::vector<Point>> get_moves_added_history() const { return moves_added_history; }
+    [[nodiscard]] std::stack<Point> get_move_history() const { return move_history; }
 
 private:
-    int COUNT, turn_count, dim, size, game_state, turn;
+    int COUNT, turn_count, dim, size, game_state, player;
+    bool print;
     int board[30][30] = {}; // Empty board (all zeros), 30x30 is the max size
     Point prev_move;
     bool game_ended;
     std::set<Point> AI_moves;
+    std::stack<Point> move_history;
+    std::stack<std::vector<Point>> moves_added_history;     // history of moves added to AI_moves after each player
 
     void generate_AI_moves(int n=2);
 

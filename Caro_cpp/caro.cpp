@@ -1,6 +1,5 @@
 #include "caro.h"
 
-
 const Point DOWN(1,0);
 const Point UP(-1,0);
 const Point RIGHT(0,1);
@@ -10,13 +9,11 @@ const Point DOWN_LEFT(1,-1);
 const Point UP_RIGHT(-1,1);
 const Point UP_LEFT(-1,-1);
 
-const int MAX_DIM = 30;
-const std::string CHAR[3] = {"O", ".", "X"};
-const std::string* CHAR_P = &CHAR[1]; // this is to be able to use negative index e.g. CHAR_P[-1] = "O" and CHAR_P[1] = "X"
-
 
 Caro::Caro(int _dim): prev_move(Point(-1, -1))
 {
+    print = true;
+
     COUNT = 5;
     turn_count = 0;
     dim = std::min(_dim, MAX_DIM);
@@ -24,7 +21,7 @@ Caro::Caro(int _dim): prev_move(Point(-1, -1))
 
     game_state = 0;     // 0:Undecided, 1: X wins, -1: O wins
     game_ended = false;
-    turn = 1;           // 1:X  -1:O
+    player = 1;           // 1:X  -1:O
 
     AI_moves.insert(Point(dim/2, dim/2));
 }
@@ -67,14 +64,16 @@ bool Caro::play(Point pos)
         std::cout << pos.to_string() + " OUT OF BOUND" << std::endl;
         return false;
     }
-    if (board[pos(0)][pos(1)] == 0)
+    if (board[pos(0)][pos(1)] == 0)     // The move is valid
     {
-        board[pos(0)][pos(1)] = turn;
+        // std::cout << pos.to_string() << " PLAYED" << std::endl;
+        board[pos(0)][pos(1)] = player;
         prev_move = pos;
         turn_count++;
         check_win();
         generate_AI_moves();
-        turn = -turn;
+        player = -player;
+        move_history.push(pos);
         return true;
     }
     else
@@ -84,10 +83,41 @@ bool Caro::play(Point pos)
     }
 }
 
+void Caro::undo()
+{
+    if (move_history.empty())
+    {
+        return;
+    }
+
+    Point pos = move_history.top();
+    // std::cout << "UNDOING MOVE " << pos.to_string() << std::endl;
+
+    prev_move = pos;
+    board[pos(0)][pos(1)] = 0;
+    turn_count--;
+
+    game_ended = false;     // undoing any check_win() action
+    game_state = 0;
+
+    std::vector<Point>& moves_added = moves_added_history.top();    // undoing moves added to AI_moves from playing pos
+    for (Point const& p : moves_added)
+    {
+        AI_moves.erase(p);
+    }
+    moves_added_history.pop();
+    AI_moves.insert(pos);   // re-insert pos back to AI_moves
+
+    player = -player;
+    move_history.pop();
+}
+
 void Caro::generate_AI_moves(int n)
 {
     Point pos = prev_move;
     AI_moves.erase(pos);
+
+    std::vector<Point> moves_added;   // vector of moves added this player to be pushed into moves_added_history
 
     for (int i = pos(0)-n; i <= pos(0)+n; i++)
     {
@@ -96,10 +126,15 @@ void Caro::generate_AI_moves(int n)
             Point tmp = Point(i,j);
             if (is_unoccupied(tmp))
             {
-                AI_moves.insert(tmp);
+                std::pair res = AI_moves.insert(tmp);
+                if (res.second)     // if tmp is a new move being added
+                {
+                    moves_added.emplace_back(tmp);    // insert a copy of tmp with emplace
+                }
             }
         }
     }
+    moves_added_history.push(moves_added);
 }
 
 void Caro::check_win()
@@ -109,13 +144,19 @@ void Caro::check_win()
     game_ended = check_diagonal(pos) || check_vertical(pos) || check_horizontal(pos);
     if (game_ended)
     {
-        game_state = turn;
-        std::cout << CHAR_P[game_state] + " WON IN " + std::to_string(turn_count) + " turns" << std::endl;
+        game_state = player;
+        if (print)
+        {
+            std::cout << CHAR_P[game_state] + " WON IN " + std::to_string(turn_count) + " turns" << std::endl;
+        }
     }
     else if (turn_count == size)
     {
         game_ended = true;
-        std::cout << "TIE IN " + std::to_string(turn_count) + " turns" << std::endl;
+        if (print)
+        {
+            std::cout << "TIE IN " + std::to_string(turn_count) + " turns" << std::endl;
+        }
     }
 }
 
@@ -147,7 +188,6 @@ std::pair<int, bool> Caro::count_line(Point pos, Point inc)
             return res;
         }
     }
-    return res;
 }
 
 bool Caro::check_line(Point pos, Point dir1, Point dir2)
