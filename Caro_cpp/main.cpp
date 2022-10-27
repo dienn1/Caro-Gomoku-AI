@@ -1,6 +1,9 @@
 #include "caro.h"
 #include "mcts.h"
 
+#include <chrono>
+using namespace std::chrono;
+
 
 Point get_random_move(const std::set<Point>& moves)
 {
@@ -85,22 +88,39 @@ int main() {
 //    Point p = Point(1,1) + Point(0, -1);
 //    std::cout << (p == Point(0,0)) << std::endl;
 
-    int n = 20;
+    int n = 10;
     int win = 0;
+    int dim = 10;
+    int moves_range = 1;
     for (int i = 0; i < n; i++)
     {
-        Caro board = Caro(10);
+        Caro board = Caro(dim);
         board.disable_print();
-        int n_sim = 10000;
-        int min_visit = 20;
-        MCTS_AI mcts_ai = MCTS_AI(1, min_visit, n_sim, &board);
-        MCTS_AI mcts_ai2 = MCTS_AI(-1, min_visit, n_sim, &board);
+
+        int n_sim1 = 10000;
+        int min_visit1 = 10;
+        int n_sim2 = 10000;
+        int min_visit2 = 5;
+
+        MCTS_AI mcts_ai = MCTS_AI(1, min_visit1, n_sim1, board, moves_range);
+        MCTS_AI mcts_ai2 = MCTS_AI(-1, min_visit2, n_sim2, board, moves_range);
         while (!board.has_ended())
         {
             //std::cout << "MCTS AI THINKING ..." << std::endl;
-            board.play(mcts_ai.get_move());
+            auto start = high_resolution_clock::now();
+            board.play(mcts_ai.get_move(board.get_prev_move()));
+            auto stop = high_resolution_clock::now();
+            auto duration = duration_cast<microseconds>(stop - start);
+            // To get the value of duration use the count()
+            // member function on the duration object
+            std::cout << duration.count()/1000000 << " SECONDS" << std::endl;
+            //std::cout << "X PLAYED" << std::endl;
+
             if (board.has_ended()) { break; }
-            board.play(mcts_ai2.get_move());
+            board.play(mcts_ai2.get_move(board.get_prev_move()));
+//            Point random_move = get_random_move(board.get_AI_moves());
+//            board.play(random_move);
+            //std::cout << "O PLAYED" << std::endl;
             //std::cout << board.to_string() << std::endl;
             //std::cin.ignore();
         }
@@ -118,6 +138,8 @@ int main() {
         {
             std::cout << "TIE" << std::endl;
         }
+        std::cout << "AI1 has average " << mcts_ai.average_child_count() << " children per expanded node" << std::endl;
+        std::cout << "AI2 has average " << mcts_ai2.average_child_count() << " children per expanded node" << std::endl;
         std::cout << board.to_string() << std::endl << std::endl;
     }
     std::cout << float(win)/n << std::endl;

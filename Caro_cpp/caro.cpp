@@ -10,7 +10,7 @@ const Point UP_RIGHT(-1,1);
 const Point UP_LEFT(-1,-1);
 
 
-Caro::Caro(int _dim): prev_move(Point(-1, -1))
+Caro::Caro(int _dim, int _ai_moves_range): prev_move(Point(-1, -1)), AI_moves_range(_ai_moves_range)
 {
     print = true;
 
@@ -71,7 +71,7 @@ bool Caro::play(Point pos)
         prev_move = pos;
         turn_count++;
         check_win();
-        generate_AI_moves();
+        generate_AI_moves(AI_moves_range);
         player = -player;
         move_history.push(pos);
         return true;

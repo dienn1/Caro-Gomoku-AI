@@ -66,7 +66,7 @@ struct PointHashFunction
 class Caro
 {
 public:
-    explicit Caro(int _dim=19);
+    explicit Caro(int _dim=19, int _ai_moves_range=1);
 
     std::string to_string();
 
@@ -82,6 +82,9 @@ public:
     [[nodiscard]] bool has_ended() const { return game_ended; }
 
     [[nodiscard]] int current_turn() const { return player; }
+
+    [[nodiscard]] int get_AI_moves_range() const { return AI_moves_range; }
+    void set_AI_moves_range(int moves_range) { AI_moves_range = moves_range; }
 
     void disable_print() {print = false;}
     void enable_print() {print = true;}
@@ -112,7 +115,7 @@ public:
     [[nodiscard]] std::stack<Point> get_move_history() const { return move_history; }
 
 private:
-    int COUNT, turn_count, dim, size, game_state, player;
+    int COUNT, turn_count, dim, size, game_state, player, AI_moves_range;
     bool print;
     int board[30][30] = {}; // Empty board (all zeros), 30x30 is the max size
     Point prev_move;
