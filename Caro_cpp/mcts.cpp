@@ -1,15 +1,6 @@
 #include "mcts.h"
 
 
-std::string TreeNode::to_string() const {
-    return "TreeNode: " + move.to_string() + " player: " + CHAR_P[player];
-}
-
-double TreeNode::uct() const {
-    return winrate() + C * sqrt(log(parent->visit_count) / visit_count);
-}
-
-
 void MCTS_AI::expand_node(TreeNode *node)
 {
     expanded_nodes_count++;
@@ -86,9 +77,18 @@ TreeNode* MCTS_AI::mcts_selection(TreeNode *node)
 
 int MCTS_AI::simulate()
 {
-    Caro temp_board = Caro(board);
-    temp_board.simulate();
-    return temp_board.get_state();
+//    Caro temp_board = Caro(board);
+//    temp_board.simulate();
+//    int final_state = temp_board.get_state();
+    int current_turn = board.get_turn_count();
+    board.simulate();
+    int end_turn = board.get_turn_count();
+    int final_state = board.get_state();
+    for (int i = 0; i < end_turn - current_turn; i++)
+    {
+        board.undo();
+    }
+    return final_state;
 }
 
 Point MCTS_AI::get_move(Point prev_move)

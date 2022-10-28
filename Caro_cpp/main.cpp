@@ -1,5 +1,6 @@
 #include "caro.h"
 #include "mcts.h"
+#include "loader.h"
 
 #include <chrono>
 using namespace std::chrono;
@@ -16,78 +17,11 @@ Point get_random_move(const std::set<Point>& moves)
 
 
 int main() {
-//    int t[30][30] = {};
-//    std::cout << CHAR_P[1] << std::endl;
-//
-
-//    Point a = Point(2,4);
-//    Point b = Point(69, 96);
-//    Point c = Point(2, 6);
-//    Point d = Point(42, 2);
-//    std::set<Point> s;
-//    s.insert(a); s.insert(b); s.insert(c); s.insert(d);
-//    std::cout << s.size() << std::endl;
-//    s.erase(Point(2, 4));
-//    std::cout << s.size() << std::endl;
-//    Point p = get_random_move(s);
-
-//    Caro c = Caro(19);
-//    Caro c1(c);
-//    std::cout << c.to_string() << std::endl;
-//    c.simulate();
-//    std::cout << c.to_string() << std::endl;
-//    c1.simulate();
-//    std::cout << c1.to_string() << std::endl;
-//    std::stack s = c.get_moves_added_history();
-//    size_t n = 0;
-//    while (!s.empty())
-//    {
-//        n += s.top().size();
-//        s.pop();
-//    }
-//    std::cout << n << " MOVES ADDED" << std::endl;
-//
-//    std::cout << "MOVES HISTORY" << std::endl;
-//    std::stack h = c.get_move_history();
-//    while (!h.empty())
-//    {
-//        std::cout << h.top().to_string() << " ";
-//        h.pop();
-//    }
-//    std::cout << std::endl;
-
-//    int n_undo = 100;
-//    std::cout << "UNDOING " << n_undo << " TIMES" << std::endl;
-//    for (int i = 0; i < n_undo; i++)
-//    {
-//        c.undo();
-//    }
-//    std::cout << c.to_string() << std::endl;
-//    std::stack s1 = c.get_moves_added_history();
-//    size_t n1 = 0;
-//    while (!s1.empty())
-//    {
-//        n1 += s1.top().size();
-//        s1.pop();
-//    }
-//    std::cout << n1 << " MOVES ADDED" << std::endl;
-//
-//    std::cout << "MOVES HISTORY" << std::endl;
-//    std::stack h1 = c.get_move_history();
-//    while (!h1.empty())
-//    {
-//        std::cout << h1.top().to_string() << " ";
-//        h1.pop();
-//    }
-//    std::cout << std::endl;
-
-//    c.simulate();
-//    std::cout << c.to_string() << std::endl;
-
-
-//    Point p = Point(1,1) + Point(0, -1);
-//    std::cout << (p == Point(0,0)) << std::endl;
-    int n = 1;
+    std::string dir = "training_data/pass1.txt";
+    std::ofstream outfile;
+    outfile.open(dir);
+    outfile << "#PASS1" << "\n\n\n";
+    int n = 10;
     int win = 0;
     int tie = 0;
     int dim = 19;
@@ -120,6 +54,7 @@ int main() {
             std::cout << "DEPTH: " << mcts_ai.get_tree_depth() << std::endl;
             std::cout << "X PLAYED " << board.get_prev_move().to_string() << " with predicted winrate " << mcts_ai.predicted_winrate() << std::endl;
             std::cout << board.to_string() << std::endl;
+            save_data_point(outfile, mcts_ai.get_current_node(), board);
 
             if (board.has_ended()) { break; }
 
@@ -133,6 +68,7 @@ int main() {
 //            board.play(random_move);
             std::cout << "O PLAYED " << board.get_prev_move().to_string() << " with predicted winrate " << mcts_ai2.predicted_winrate() << std::endl;
             std::cout << board.to_string() << std::endl;
+            save_data_point(outfile, mcts_ai2.get_current_node(), board);
             //std::cin.ignore();
         }
 
@@ -161,6 +97,7 @@ int main() {
     std::cout << duration_all.count()/n << " SECONDS PER GAME" << std::endl;
     std::cout << "X WON: " << win << std::endl;
     std::cout << "TIE: " << tie << std::endl;
+    outfile.close();
 
     return 0;
 }
