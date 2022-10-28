@@ -83,6 +83,8 @@ public:
 
     [[nodiscard]] int current_turn() const { return player; }
 
+    [[nodiscard]] int get_turn_count() const { return turn_count; }
+
     [[nodiscard]] int get_AI_moves_range() const { return AI_moves_range; }
     void set_AI_moves_range(int moves_range) { AI_moves_range = moves_range; }
 

@@ -10,15 +10,30 @@ using namespace constants;
 class TreeNode
 {
 public:
+    int visit_count;
+    int win;
     Point move;     // The move that leads to this node (the edge)
     TreeNode* parent;   // The parent state the playing move leads to
     std::vector<TreeNode*> children;   // expanded from possible moves from AI_moves
-    int visit_count;
-    int win;
-    int player;     // the player that make the move
+    const int player;     // the player that make the move
+    int turn_count;
 
-    TreeNode(Point _move, int _player, TreeNode* _parent=nullptr):
-            move(_move), player(_player), parent(_parent), visit_count(0), win(0) {}
+    TreeNode(Point _move, int _player, TreeNode* _parent=nullptr, int _turn_count=0):
+    move(_move), player(_player), parent(_parent), visit_count(0), win(0)
+    {
+        if (_turn_count > 0)
+        {
+            turn_count = _turn_count;
+        }
+        if (parent == nullptr)
+        {
+            turn_count = 0;
+        }
+        else
+        {
+            turn_count = parent->turn_count + 1;
+        }
+    }
 
     [[nodiscard]] double winrate() const
     {
@@ -29,6 +44,8 @@ public:
     [[nodiscard]] double uct() const;
 
     [[nodiscard]] std::string to_string() const;
+
+
 };
 
 
@@ -41,20 +58,24 @@ private:
     TreeNode* current_node;
     Caro board;
     int AI_moves_range;
+    int current_depth;
+    int current_max_depth;
     std::vector<TreeNode*> nodes_vector;
 
     size_t child_count;
     size_t expanded_nodes_count;
 
+
     int mcts(TreeNode* node);
     static TreeNode* mcts_selection(TreeNode* node);
+    static TreeNode* winrate_selection(TreeNode* node);
     int simulate();
     void expand_node(TreeNode* node);
 
 public:
     MCTS_AI(int _player, int _min_visits, int _n_sim, Caro const& _board, int _ai_moves_range=1):
     player(_player), min_visits(_min_visits), n_sim(_n_sim), current_node(nullptr), AI_moves_range(_ai_moves_range),
-    child_count(0), expanded_nodes_count(0)
+    child_count(0), expanded_nodes_count(0), current_depth(0), current_max_depth(0)
     {
         board = Caro(_board);
         board.set_AI_moves_range(AI_moves_range);
@@ -64,12 +85,18 @@ public:
 
     [[nodiscard]] Point get_move(Point prev_move);
 
+    [[nodiscard]] int get_tree_depth() const { return current_max_depth - current_depth;}
+
     [[nodiscard]] double average_child_count() const
     {
         if (expanded_nodes_count == 0){ return 0;}
         return double(child_count)/double(expanded_nodes_count);
     }
 
+    [[nodiscard]] double predicted_winrate()
+    {
+        return current_node->winrate();
+    }
 };
 
 #endif //CARO_CPP_MCTS_H

@@ -55,7 +55,8 @@
 				0,
 				2,
 				4,
-				6
+				6,
+				7
 			]
 		}
 	],
@@ -95,7 +96,8 @@
 				0,
 				2,
 				4,
-				6
+				6,
+				7
 			]
 		},
 		{
@@ -147,6 +149,12 @@
 			"backtrace" : 1,
 			"compileGroupIndex" : 0,
 			"path" : "constants.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "loader.cpp",
 			"sourceGroupIndex" : 0
 		}
 	],
