@@ -21,7 +21,8 @@ int main() {
     std::ofstream outfile;
     outfile.open(dir);
     outfile << "#PASS1" << "\n\n\n";
-    int n = 10;
+    int n = 20;
+    int data_count = 0;
     int win = 0;
     int tie = 0;
     int dim = 19;
@@ -32,10 +33,10 @@ int main() {
         Caro board = Caro(dim);
         board.disable_print();
 
-        int n_sim1 = 200000;
-        int min_visit1 = 50;
-        int n_sim2 = 200000;
-        int min_visit2 = 50;
+        int n_sim1 = 20000;
+        int min_visit1 = 20;
+        int n_sim2 = 20000;
+        int min_visit2 = 20;
 
         MCTS_AI mcts_ai = MCTS_AI(1, min_visit1, n_sim1, board, moves_range);
         MCTS_AI mcts_ai2 = MCTS_AI(-1, min_visit2, n_sim2, board, moves_range);
@@ -55,6 +56,7 @@ int main() {
             std::cout << "X PLAYED " << board.get_prev_move().to_string() << " with predicted winrate " << mcts_ai.predicted_winrate() << std::endl;
             std::cout << board.to_string() << std::endl;
             save_data_point(outfile, mcts_ai.get_current_node(), board);
+            data_count++;
 
             if (board.has_ended()) { break; }
 
@@ -69,6 +71,7 @@ int main() {
             std::cout << "O PLAYED " << board.get_prev_move().to_string() << " with predicted winrate " << mcts_ai2.predicted_winrate() << std::endl;
             std::cout << board.to_string() << std::endl;
             save_data_point(outfile, mcts_ai2.get_current_node(), board);
+            data_count++;
             //std::cin.ignore();
         }
 
@@ -97,6 +100,8 @@ int main() {
     std::cout << duration_all.count()/n << " SECONDS PER GAME" << std::endl;
     std::cout << "X WON: " << win << std::endl;
     std::cout << "TIE: " << tie << std::endl;
+
+    outfile << data_count << std::endl;
     outfile.close();
 
     return 0;
