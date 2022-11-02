@@ -34,9 +34,9 @@ int main() {
         board.disable_print();
 
         int n_sim1 = 20000;
-        int min_visit1 = 20;
+        int min_visit1 = 10;
         int n_sim2 = 20000;
-        int min_visit2 = 20;
+        int min_visit2 = 10;
 
         MCTS_AI mcts_ai = MCTS_AI(1, min_visit1, n_sim1, board, moves_range);
         MCTS_AI mcts_ai2 = MCTS_AI(-1, min_visit2, n_sim2, board, moves_range);
