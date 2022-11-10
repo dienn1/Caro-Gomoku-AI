@@ -142,6 +142,11 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
+# C++ build and project file
+Caro_pybind/.vs
+Caro_pybind/out
+deprecated_Caro_cpp/.vs
+
 # PyCharm
 #  JetBrains specific template is maintainted in a separate JetBrains.gitignore that can
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore

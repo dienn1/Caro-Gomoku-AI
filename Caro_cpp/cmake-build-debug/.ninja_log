@@ -1,8 +1,0 @@
-# ninja log v5
-3	1178	6887228444710413	CMakeFiles/Caro_cpp.dir/main.cpp.obj	f29dc0a7ea1b47c2
-7	1311	6886538307842252	CMakeFiles/Caro_cpp.dir/caro.cpp.obj	bf0d3474b56c942d
-1178	1682	6887228449742865	Caro_cpp.exe	d7bcd9cd09c18b72
-3	1061	6886551297622769	CMakeFiles/Caro_cpp.dir/mcts.cpp.obj	719b18b5c78e225a
-7	800	6886560339895690	CMakeFiles/Caro_cpp.dir/loader.cpp.obj	d4a4159184008f78
-5	357	6884747222987069	CMakeFiles/Caro_cpp.dir/constants.cpp.obj	44c5d071f3314115
-16	1013	6886538304860236	CMakeFiles/Caro_cpp.dir/tree.cpp.obj	bf36475ce676a0fa
