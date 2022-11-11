@@ -15,7 +15,7 @@ private:
     int min_visits;
     int n_sim;
     bool use_prior;
-    std::function<double(std::array<std::array<int, 30>, 30>)> evaluate_prior;
+    std::function<double(std::array<std::array<int, 30>, 30>, int)> evaluate_prior;
 
     static double uct(TreeNode* node)
     {
@@ -42,7 +42,7 @@ private:
     double evaluate_node(TreeNode* node);
 
 public:
-    MCTS_AI(int _player, int _min_visits, int _n_sim, Caro const& _board, int _ai_moves_range = 1, std::function<double(std::array<std::array<int, 30>, 30>)> _eval = nullptr) :
+    MCTS_AI(int _player, int _min_visits, int _n_sim, Caro const& _board, int _ai_moves_range = 1, std::function<double(std::array<std::array<int, 30>, 30>, int)> _eval = nullptr) :
     player(_player), min_visits(_min_visits), n_sim(_n_sim), current_node(nullptr), AI_moves_range(_ai_moves_range), evaluate_prior(_eval), use_prior(false),
     child_count(0), expanded_nodes_count(0), current_depth(0), current_max_depth(0)
     {
