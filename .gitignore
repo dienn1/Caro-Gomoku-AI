@@ -147,6 +147,9 @@ Caro_pybind/.vs
 Caro_pybind/out
 deprecated_Caro_cpp/.vs
 
+# Model and training data
+training_data/
+
 # PyCharm
 #  JetBrains specific template is maintainted in a separate JetBrains.gitignore that can
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore

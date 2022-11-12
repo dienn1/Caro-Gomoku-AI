@@ -1,5 +1,5 @@
 import torch
-from data_handler import load_raw_board_data, board_to_np, raw_data_transform, np_board_to_tensor, BoardDataLoader
+from data_handler import load_raw_board_data, board_to_np, raw_data_transform, np_board_to_tensor, BoardDataLoader, np_board_to_tensor_batch
 from model import Net, train
 from self_play import self_play
 
@@ -30,6 +30,10 @@ if __name__ == "__main__":
     training_pass = 10
     MAX_TRAINING_DATA_SIZE = 1000
 
+    batch_size = 64
+    training_epoch = 25
+    learning_rate = 0.001
+
     dim = 15
     count = 20
     n_sim1 = 20000
@@ -39,6 +43,7 @@ if __name__ == "__main__":
 
     nn_model = Net()
 
+
     def evaluate(board, player):
         player = 2 if player < 0 else player
         board = board_to_np(board, player)
@@ -47,17 +52,18 @@ if __name__ == "__main__":
     eval1 = evaluate
     eval2 = evaluate
 
-    data = load_data_and_train("training_data/pass0.txt", nn_model)
+    data = load_data_and_train("training_data/pass0.txt", nn_model)     # warm-up the model
     try:
         for i in range(training_pass):
-            dir_path = "training_data/pass" + str(i+1) + ".txt"
+            dir_path = PATH + "pass" + str(i+1) + ".txt"
             outfile = open(dir_path, "a")
-            with torch.no_grad():
+            with torch.inference_mode():
                 new_data = self_play(dim, count, n_sim1, min_visit1, eval1, n_sim2, min_visit2, eval2, verbose=False, outfile=outfile)
-                data.extend(new_data)
+            np_board_to_tensor_batch(new_data, unsqueeze=False)
+            data.extend(new_data)
             outfile.close()
             traindata = BoardDataLoader(data, MAX_TRAINING_DATA_SIZE)
-            train(nn_model, traindata)
+            train(nn_model, traindata, lr=learning_rate, batch_size=batch_size, total_epoch=training_epoch)
             torch.save(nn_model.state_dict(), PATH + MODEL_NAME + "_temp" + str(i) + ".pt")
     finally:
         torch.save(nn_model.state_dict(), PATH + MODEL_NAME + ".pt")

@@ -11,11 +11,9 @@ from copy import copy, deepcopy
 class BoardDataLoader(Dataset):
     def __init__(self, data, max_recall):   # data format: [np_board, winrate]
         if len(data) < max_recall:
-            self.data = deepcopy(data)
+            self.data = data
         else:
             self.data = data[-max_recall::1]
-        for i in range(len(self.data)):
-            self.data[i][0] = np_board_to_tensor(self.data[i][0], unsqueeze=False)
 
     def __len__(self):
         return len(self.data)
@@ -63,25 +61,32 @@ def board_to_np(board_array, player, dim=15):
     np_board = np.zeros((2, 16, 16))
     for i in range(dim):
         for j in range(dim):
-            pixel = board_array[i][j] if player == 1 else reverse(board_array[i][j])
+            pixel = board_array[i][j]
             if pixel > 0:
+                pixel = pixel if player == 1 else reverse(pixel)
                 np_board[pixel - 1, i, j] = 1
     return np_board
 
 
-# return DATA FORMAT [transformed_board, winrate]
+# return DATA FORMAT [transformed_tensor_board, winrate]
 def raw_data_transform(data_dict):
     transformed_data = list()
     dim = len(data_dict[0]["board"])
     for d in data_dict:
-        np_board = board_to_np(data_dict[0]["board"], data_dict[0]["player"], dim)
+        np_board = board_to_np(d["board"], d["player"], dim)
         transformed_data.append([np_board, d["winrate"]])
+    np_board_to_tensor_batch(transformed_data, unsqueeze=False)
     return transformed_data
 
 
 def np_board_to_tensor(np_board, unsqueeze=False):
     board = torch.from_numpy(np_board).type(torch.FloatTensor)
     return torch.unsqueeze(board, 0) if unsqueeze else board
+
+
+def np_board_to_tensor_batch(np_data, unsqueeze=False):
+    for i in range(len(np_data)):
+        np_data[i][0] = np_board_to_tensor(np_data[i][0], unsqueeze=unsqueeze)
 
 
 def save_raw_data(f, mcts_ai, caro_board):
@@ -127,9 +132,10 @@ def create_data_point(mcts_ai, caro_board):
 
 
 if __name__ == "__main__":
-    data_dir = "training_data/pass1.txt"
+    data_dir = "training_data/pass0.txt"
     board_data = load_raw_board_data(data_dir, 15)
     transformed_board_data = raw_data_transform(board_data)
+    # print(transformed_board_data[-2])
     net = Net()
     traindata = BoardDataLoader(transformed_board_data, 1000)
     # dataloader = DataLoader(traindata, batch_size=4, shuffle=True, num_workers=0)
@@ -137,6 +143,6 @@ if __name__ == "__main__":
     #     inputs, labels = data
     #     print(labels.shape)
     t = time.time()
-    train(net, traindata)
+    train(net, traindata, lr=1e-3, batch_size=16)
     print(time.time() - t)
 

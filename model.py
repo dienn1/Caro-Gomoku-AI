@@ -3,6 +3,7 @@ import torch.nn.functional as F
 import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader
+import numpy as np
 
 
 class Net(nn.Module):
@@ -17,6 +18,7 @@ class Net(nn.Module):
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
+        # print(np.abs(x.detach().numpy().std(axis=0)).mean())
         x = self.pool(F.relu(self.conv1(x)))
         x = self.pool(F.relu(self.conv2(x)))
         x = torch.flatten(x, 1)     # flatten all dimensions except batch
@@ -38,9 +40,9 @@ def save_model(model, model_path):
     torch.save(model.state_dict(), model_path)
 
 
-def train(model, traindata, batch_size=10, num_workers=0, total_epoch=50):
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+def train(model, traindata, batch_size=32, lr=0.0001, num_workers=0, total_epoch=25):
+    criterion = nn.BCELoss()
+    optimizer = optim.Adam(model.parameters(), lr=lr)
     trainloader = DataLoader(traindata, batch_size=batch_size, shuffle=True, num_workers=num_workers)
     for epoch in range(total_epoch):  # loop over the dataset multiple times
         running_loss = 0.0
@@ -54,8 +56,9 @@ def train(model, traindata, batch_size=10, num_workers=0, total_epoch=50):
 
             # forward + backward + optimize
             outputs = model(inputs)
-            outputs = torch.reshape(outputs, labels.shape)
-            loss = criterion(outputs, labels)
+            outputs = torch.reshape(outputs, labels.shape).type(torch.FloatTensor)
+            # print(outputs[:10], labels[:10])
+            loss = criterion(outputs, labels.type(torch.FloatTensor))
             loss.backward()
             optimizer.step()
 
@@ -63,3 +66,4 @@ def train(model, traindata, batch_size=10, num_workers=0, total_epoch=50):
             running_loss += loss.item()
             batch_count += 1
         print(f'[{epoch + 1}] loss: {running_loss / batch_count:.3f}')
+    #print(list(model.parameters())[-2])
