@@ -5,7 +5,7 @@ import time
 
 
 # Return data points from self-play
-def self_play(dim, count, n_sim1, min_visit1, eval1, n_sim2, min_visit2, eval2, outfile=None, verbose=False):
+def self_play(dim, count, n_sim1, min_visit1, eval1, n_sim2, min_visit2, eval2, outfile=None, verbose=False, eval_model=None):
     x_win = 0
     data_count = 0
     data_points = list()
@@ -21,7 +21,9 @@ def self_play(dim, count, n_sim1, min_visit1, eval1, n_sim2, min_visit2, eval2, 
             if verbose:
                 print(time.time() - t, "SECONDS")
                 print("DEPTH:", mcts_ai.get_tree_depth())
-                print("X PLAYED", caro_board.get_prev_move(), "with predicted winrate", mcts_ai.predicted_winrate())
+                print("X PLAYED", caro_board.get_prev_move(), "with predicted reward", mcts_ai.predicted_reward())
+                if eval_model:
+                    print("MODEL REWARD PREDICTION:", eval_model(caro_board.get_board(), mcts_ai.get_player()))
                 print(caro_board)
             data_points.append(create_data_point(mcts_ai, caro_board))
             if outfile:
@@ -36,7 +38,9 @@ def self_play(dim, count, n_sim1, min_visit1, eval1, n_sim2, min_visit2, eval2, 
             if verbose:
                 print(time.time() - t, "SECONDS")
                 print("DEPTH:", mcts_ai2.get_tree_depth())
-                print("O PLAYED", caro_board.get_prev_move(), "with predicted winrate", mcts_ai2.predicted_winrate())
+                print("O PLAYED", caro_board.get_prev_move(), "with predicted reward", mcts_ai2.predicted_reward())
+                if eval_model:
+                    print("MODEL REWARD PREDICTION:", eval_model(caro_board.get_board(), mcts_ai2.get_player()))
                 print(caro_board)
             data_points.append(create_data_point(mcts_ai2, caro_board))
             if outfile:
@@ -52,11 +56,11 @@ def self_play(dim, count, n_sim1, min_visit1, eval1, n_sim2, min_visit2, eval2, 
             print("TIE")
         print(caro_board)
         print("GAME ENDED", time.time()-total_t, "IN SECONDS")
-
         if verbose:
             print("AI1 has average", mcts_ai.average_child_count(), "children per expanded node")
             print("AI1 has average", mcts_ai2.average_child_count(), "children per expanded node")
         print("------------------------------------------------------------------------\n")
+
     if verbose:
         print(x_win / count)
     if outfile:

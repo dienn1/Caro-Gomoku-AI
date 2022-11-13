@@ -9,7 +9,7 @@ from copy import copy, deepcopy
 
 
 class BoardDataLoader(Dataset):
-    def __init__(self, data, max_recall):   # data format: [np_board, winrate]
+    def __init__(self, data, max_recall):   # data format: [np_board, reward]
         if len(data) < max_recall:
             self.data = data
         else:
@@ -18,7 +18,7 @@ class BoardDataLoader(Dataset):
     def __len__(self):
         return len(self.data)
 
-    # Return data point with format [board, winrate]
+    # Return data point with format [board, reward]
     def __getitem__(self, idx):
         if torch.is_tensor(idx):
             idx = idx.tolist()
@@ -37,7 +37,7 @@ def load_raw_board_data(data_path, dim):
         line = f.readline()
         if not line or int(line) > 2:   # when at the end of file or the number is > 2 (meaning reached the data count)
             break
-        data = {"player": int(line), "board": list(), "winrate": 0}
+        data = {"player": int(line), "board": list(), "reward": 0}
         board = list()
         for i in range(dim):
             line = f.readline()
@@ -45,7 +45,7 @@ def load_raw_board_data(data_path, dim):
             board.append(row)
         data["board"] = board
         line = f.readline()
-        data["winrate"] = float(line)
+        data["reward"] = float(line)
         data_dict.append(data)
         f.readline()    # newline here
     return data_dict
@@ -68,13 +68,13 @@ def board_to_np(board_array, player, dim=15):
     return np_board
 
 
-# return DATA FORMAT [transformed_tensor_board, winrate]
+# return DATA FORMAT [transformed_tensor_board, reward]
 def raw_data_transform(data_dict):
     transformed_data = list()
     dim = len(data_dict[0]["board"])
     for d in data_dict:
         np_board = board_to_np(d["board"], d["player"], dim)
-        transformed_data.append([np_board, d["winrate"]])
+        transformed_data.append([np_board, d["reward"]])
     np_board_to_tensor_batch(transformed_data, unsqueeze=False)
     return transformed_data
 
@@ -90,7 +90,7 @@ def np_board_to_tensor_batch(np_data, unsqueeze=False):
 
 
 def save_raw_data(f, mcts_ai, caro_board):
-    winrate = mcts_ai.predicted_winrate()
+    reward = mcts_ai.predicted_reward()
     player = mcts_ai.get_player()
     if player < 0:
         player = 2
@@ -104,7 +104,7 @@ def save_raw_data(f, mcts_ai, caro_board):
                 tmp = 2
             res += str(tmp) + " "
         res += "\n"
-    res += str(winrate) + "\n\n"
+    res += str(reward) + "\n\n"
     f.write(res)
 
 
@@ -122,13 +122,13 @@ def process_board(board_array, dim=15):
 
 
 # create a datapoint for NN training purpose
-# FORMAT [board_array, winrate]
+# FORMAT [board_array, reward]
 def create_data_point(mcts_ai, caro_board):
     board_array = caro_board.get_board()
     dim = caro_board.get_dim()
     board_array = process_board(board_array, dim)
     np_board = board_to_np(board_array, mcts_ai.get_player())
-    return [np_board, mcts_ai.predicted_winrate()]
+    return [np_board, mcts_ai.predicted_reward()]
 
 
 if __name__ == "__main__":
@@ -143,6 +143,6 @@ if __name__ == "__main__":
     #     inputs, labels = data
     #     print(labels.shape)
     t = time.time()
-    train(net, traindata, lr=1e-3, batch_size=16)
+    train(net, traindata, lr=1e-3, batch_size=32)
     print(time.time() - t)
 

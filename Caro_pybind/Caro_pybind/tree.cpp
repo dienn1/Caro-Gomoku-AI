@@ -5,10 +5,10 @@ std::string TreeNode::to_string() const {
     return "TreeNode: " + move.to_string() + " player: " + CHAR_P[player];
 }
 
-double TreeNode::winrate() const
+double TreeNode::average_reward() const
 {
     if (visit_count == 0) { return 0.0;}
-    return (double) win / (visit_count);
+    return player * (double) total_reward / (visit_count);
 }
 
 double TreeNode::exploration_value() const
@@ -17,7 +17,7 @@ double TreeNode::exploration_value() const
 }
 
 double TreeNode::uct() const {
-    return winrate() + exploration_value();
+    return average_reward() + exploration_value();
 }
 
 int TreeNode::get_player() const

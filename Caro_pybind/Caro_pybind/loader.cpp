@@ -3,7 +3,7 @@
 
 void save_data_point(std::ofstream& outfile, const TreeNode* node, const Caro& board)
 {
-    double winrate = node->winrate();
+    double average_reward = node->average_reward();
     int player = node->player;
     if (player < 0) { player = 2;}
     outfile << player << "\n";
@@ -18,5 +18,5 @@ void save_data_point(std::ofstream& outfile, const TreeNode* node, const Caro& b
         }
         outfile << "\n";
     }
-    outfile << winrate << "\n\n";
+    outfile << average_reward << "\n\n";
 }

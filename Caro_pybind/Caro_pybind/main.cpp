@@ -51,7 +51,7 @@ int main() {
             auto duration = duration_cast<seconds>(stop - start);
             std::cout << duration.count() << " SECONDS" << std::endl;
             std::cout << "DEPTH: " << mcts_ai.get_tree_depth() << std::endl;
-            std::cout << "X PLAYED " << board.get_prev_move().to_string() << " with predicted winrate " << mcts_ai.predicted_winrate() << std::endl;
+            std::cout << "X PLAYED " << board.get_prev_move().to_string() << " with predicted average_reward " << mcts_ai.predicted_reward() << std::endl;
             std::cout << board.to_string() << std::endl;
             save_data_point(outfile, mcts_ai.get_current_node(), board);
             data_count++;
@@ -64,7 +64,7 @@ int main() {
             duration = duration_cast<seconds>(stop - start);
             std::cout << duration.count() << " SECONDS" << std::endl;
             std::cout << "DEPTH: " << mcts_ai2.get_tree_depth() << std::endl;
-            std::cout << "O PLAYED " << board.get_prev_move().to_string() << " with predicted winrate " << mcts_ai2.predicted_winrate() << std::endl;
+            std::cout << "O PLAYED " << board.get_prev_move().to_string() << " with predicted average_reward " << mcts_ai2.predicted_reward() << std::endl;
             std::cout << board.to_string() << std::endl;
             save_data_point(outfile, mcts_ai2.get_current_node(), board);
             data_count++;

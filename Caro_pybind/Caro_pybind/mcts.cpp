@@ -34,49 +34,40 @@ double MCTS_AI::evaluate_node(TreeNode* node)
         return node->uct();
     }
     int prior_strength = min_visits * 2;
-    return (node->prior_eval * prior_strength + node->win)/(prior_strength + node->visit_count) + node->exploration_value();
+    return node->player * (node->prior_eval * prior_strength + node->total_reward)/(prior_strength + node->visit_count) + node->exploration_value();
 }
 
 int MCTS_AI::mcts(TreeNode *node)
 {
+    node->visit_count++;
     if (node->visit_count >= min_visits)    // matured node
     {
-        node->visit_count++;
         if (node->children.empty())     // Initialize child nodes if empty
         {
             expand_node(node);
         }
         TreeNode* next = mcts_selection(node);
         board.play(next->move);
-        if (board.has_ended())     // If the game end after this move is made
+        if (board.has_ended())     // If the game ends, accumulate reward for next and current node, then propagate result back up
         {
             next->visit_count++;
             int result = board.get_state();
-            if (result)     // if result is not 0 (not tie) then move leads to a winning state for player next
-            {
-                next->win++;
-            }
+            next->total_reward += result;
+            node->total_reward += result;
             board.undo();
             return result;
         }
         int result = mcts(next); // recursion call mcts on node next if game doesn't end
         board.undo();
         // propagate result back up
-        if (result == node->player)
-        {
-            node->win++;
-        }
+        node->total_reward += result;
         return result;
     }
     else        // not enough maturity
     {
-        node->visit_count++;
         int result = simulate();
         // propagate result back up
-        if (result == node->player)
-        {
-            node->win++;
-        }
+        node->total_reward += result;
         return result;
     }
 }
@@ -141,17 +132,17 @@ Point MCTS_AI::get_move(Point prev_move)
     {
         mcts(current_node);
     }
-    current_node =  winrate_selection(current_node);
+    current_node =  reward_selection(current_node);
     board.play(current_node->move);
     return current_node->move;
 }
 
-// Pick move based on winrate
-TreeNode *MCTS_AI::winrate_selection(TreeNode *node) {
+// Pick move based on average_reward
+TreeNode *MCTS_AI::reward_selection(TreeNode *node) {
     TreeNode* current = node->children[0];      // THIS LINE IS BUGGED FOR SOME REASON AFRER USING GET CURRENT_NODE IN PYTHON
     for (TreeNode* child : node->children)
     {
-        if (current->winrate() < child->winrate())
+        if (current->average_reward() < child->average_reward())
         {
             current = child;
         }

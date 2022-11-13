@@ -36,7 +36,7 @@ private:
 
     int mcts(TreeNode* node);
     TreeNode* mcts_selection(TreeNode* node);
-    static TreeNode* winrate_selection(TreeNode* node);
+    static TreeNode* reward_selection(TreeNode* node);
     int simulate();
     void expand_node(TreeNode* node);
     double evaluate_node(TreeNode* node);
@@ -68,9 +68,9 @@ public:
 
     [[nodiscard]] int get_player() const { return player; }
 
-    [[nodiscard]] double predicted_winrate() const
+    [[nodiscard]] double predicted_reward() const
     {
-        return current_node->winrate();
+        return current_node->average_reward();
     }
 
     [[nodiscard]] const TreeNode* get_current_node() { return current_node; }
