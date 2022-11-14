@@ -1,7 +1,15 @@
 from Caro_pybind import Caro, Point
 from MCTS_pybind import MCTS_AI
-from data_handler import save_raw_data, create_data_point
+from data_handler import save_raw_data, create_data_point, board_to_np, np_board_to_tensor
 import time
+
+
+def get_evaluate_function(model):
+    def evaluate(board):
+        board = board_to_np(board)
+        board = np_board_to_tensor(board, unsqueeze=True)
+        return model(board)
+    return evaluate
 
 
 # Return data points from self-play
@@ -23,7 +31,8 @@ def self_play(dim, count, n_sim1, min_visit1, eval1, n_sim2, min_visit2, eval2, 
                 print("DEPTH:", mcts_ai.get_tree_depth())
                 print("X PLAYED", caro_board.get_prev_move(), "with predicted reward", mcts_ai.predicted_reward())
                 if eval_model:
-                    print("MODEL REWARD PREDICTION:", eval_model(caro_board.get_board(), mcts_ai.get_player()))
+                    pred = float(eval_model(caro_board.get_board()))
+                    print("MODEL REWARD PREDICTION:", pred)
                 print(caro_board)
             data_points.append(create_data_point(mcts_ai, caro_board))
             if outfile:
@@ -40,7 +49,8 @@ def self_play(dim, count, n_sim1, min_visit1, eval1, n_sim2, min_visit2, eval2, 
                 print("DEPTH:", mcts_ai2.get_tree_depth())
                 print("O PLAYED", caro_board.get_prev_move(), "with predicted reward", mcts_ai2.predicted_reward())
                 if eval_model:
-                    print("MODEL REWARD PREDICTION:", eval_model(caro_board.get_board(), mcts_ai2.get_player()))
+                    pred = float(eval_model(caro_board.get_board()))
+                    print("MODEL REWARD PREDICTION:", pred)
                 print(caro_board)
             data_points.append(create_data_point(mcts_ai2, caro_board))
             if outfile:
@@ -55,7 +65,7 @@ def self_play(dim, count, n_sim1, min_visit1, eval1, n_sim2, min_visit2, eval2, 
         else:
             print("TIE")
         print(caro_board)
-        print("GAME ENDED", time.time()-total_t, "IN SECONDS")
+        print("GAME ENDED IN", time.time()-total_t, "SECONDS")
         if verbose:
             print("AI1 has average", mcts_ai.average_child_count(), "children per expanded node")
             print("AI1 has average", mcts_ai2.average_child_count(), "children per expanded node")
@@ -66,3 +76,4 @@ def self_play(dim, count, n_sim1, min_visit1, eval1, n_sim2, min_visit2, eval2, 
     if outfile:
         outfile.write(str(data_count) + "\n")
     return data_points
+

@@ -20,7 +20,7 @@ void MCTS_AI::expand_node(TreeNode *node)
         if (use_prior)  // evaluate prior for each node if a prior is given
         {
             board_temp[p(0)][p(1)] = child->player;
-            child->prior_eval = evaluate_prior(board_temp, child->player);
+            child->prior_eval = evaluate_prior(board_temp);
             board_temp[p(0)][p(1)] = 0;
         }
     }

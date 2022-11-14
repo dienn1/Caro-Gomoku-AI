@@ -30,40 +30,37 @@ class BoardDataLoader(Dataset):
         return sample
 
 
-def load_raw_board_data(data_path, dim):
+def load_raw_board_data(data_path):
     f = open(data_path, "r")
     data_dict = list()
     while True:
         line = f.readline()
-        if not line or int(line) > 2:   # when at the end of file or the number is > 2 (meaning reached the data count)
+        # when at the end of file or there's number (meaning reached the data count)
+        if not line or line[:-1].isnumeric():
             break
-        data = {"player": int(line), "board": list(), "reward": 0}
+        data = {"board": list(), "reward": 0}
         board = list()
+        dim = len(line.split())
         for i in range(dim):
-            line = f.readline()
             row = [int(s) for s in line.split()]
             board.append(row)
+            line = f.readline()
         data["board"] = board
-        line = f.readline()
         data["reward"] = float(line)
         data_dict.append(data)
         f.readline()    # newline here
+    f.close()
     return data_dict
 
 
-def reverse(n):
-    return 2 if n == 1 else 1
-
-
-# Transform board into numpy array of (2, dim, dim), X and O will be swapped if the player is 2 (O)
+# Transform board into numpy array of (2, dim, dim)
 # Used for processed board
-def board_to_np(board_array, player, dim=15):
+def board_to_np(board_array, dim=15):
     np_board = np.zeros((2, 16, 16))
     for i in range(dim):
         for j in range(dim):
             pixel = board_array[i][j]
             if pixel > 0:
-                pixel = pixel if player == 1 else reverse(pixel)
                 np_board[pixel - 1, i, j] = 1
     return np_board
 
@@ -73,7 +70,7 @@ def raw_data_transform(data_dict):
     transformed_data = list()
     dim = len(data_dict[0]["board"])
     for d in data_dict:
-        np_board = board_to_np(d["board"], d["player"], dim)
+        np_board = board_to_np(d["board"], dim)
         transformed_data.append([np_board, d["reward"]])
     np_board_to_tensor_batch(transformed_data, unsqueeze=False)
     return transformed_data
@@ -91,10 +88,7 @@ def np_board_to_tensor_batch(np_data, unsqueeze=False):
 
 def save_raw_data(f, mcts_ai, caro_board):
     reward = mcts_ai.predicted_reward()
-    player = mcts_ai.get_player()
-    if player < 0:
-        player = 2
-    res = str(player) + "\n"
+    res = ""
     board_array = caro_board.get_board()
     dim = caro_board.get_dim()
     for i in range(dim):
@@ -127,13 +121,13 @@ def create_data_point(mcts_ai, caro_board):
     board_array = caro_board.get_board()
     dim = caro_board.get_dim()
     board_array = process_board(board_array, dim)
-    np_board = board_to_np(board_array, mcts_ai.get_player())
+    np_board = board_to_np(board_array)
     return [np_board, mcts_ai.predicted_reward()]
 
 
 if __name__ == "__main__":
-    data_dir = "training_data/pass0.txt"
-    board_data = load_raw_board_data(data_dir, 15)
+    data_dir = "training_data/attempt2/pass5.txt"
+    board_data = load_raw_board_data(data_dir)
     transformed_board_data = raw_data_transform(board_data)
     # print(transformed_board_data[-2])
     net = Net()
@@ -143,6 +137,6 @@ if __name__ == "__main__":
     #     inputs, labels = data
     #     print(labels.shape)
     t = time.time()
-    train(net, traindata, lr=1e-3, batch_size=32)
+    train(net, traindata, lr=1e-3, batch_size=64)
     print(time.time() - t)
 

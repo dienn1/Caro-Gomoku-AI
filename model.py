@@ -41,7 +41,8 @@ def save_model(model, model_path):
 
 
 def train(model, traindata, batch_size=32, lr=0.0001, num_workers=0, total_epoch=25):
-    criterion = nn.BCELoss()
+    # criterion = nn.BCELoss()
+    criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=lr)
     trainloader = DataLoader(traindata, batch_size=batch_size, shuffle=True, num_workers=num_workers)
     for epoch in range(total_epoch):  # loop over the dataset multiple times
@@ -56,9 +57,10 @@ def train(model, traindata, batch_size=32, lr=0.0001, num_workers=0, total_epoch
 
             # forward + backward + optimize
             outputs = model(inputs)
-            outputs = torch.reshape(outputs, labels.shape).type(torch.FloatTensor)
-            # print(outputs[:10], labels[:10])
-            loss = criterion(outputs, labels.type(torch.FloatTensor))
+            # reshape labels to be in batch format
+            labels = torch.reshape(labels, outputs.shape).type(torch.FloatTensor)
+            outputs = outputs.type(torch.FloatTensor)
+            loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
 
@@ -66,4 +68,3 @@ def train(model, traindata, batch_size=32, lr=0.0001, num_workers=0, total_epoch
             running_loss += loss.item()
             batch_count += 1
         print(f'[{epoch + 1}] loss: {running_loss / batch_count:.3f}')
-    #print(list(model.parameters())[-2])
