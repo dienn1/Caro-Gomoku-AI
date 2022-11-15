@@ -1,11 +1,8 @@
-import torchvision
-import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from torch.utils.data import Dataset, DataLoader
-from model import Net, train
+from torch.utils.data import Dataset
+from model import Net, train, load_model
 import time
-from copy import copy, deepcopy
 
 
 class BoardDataLoader(Dataset):
@@ -126,17 +123,25 @@ def create_data_point(mcts_ai, caro_board):
 
 
 if __name__ == "__main__":
-    data_dir = "training_data/attempt2/pass5.txt"
-    board_data = load_raw_board_data(data_dir)
-    transformed_board_data = raw_data_transform(board_data)
+    # data_dir = "training_data/attempt3/pass5.txt"
+    # board_data = load_raw_board_data(data_dir)
+    # transformed_board_data = raw_data_transform(board_data)
     # print(transformed_board_data[-2])
-    net = Net()
-    traindata = BoardDataLoader(transformed_board_data, 1000)
-    # dataloader = DataLoader(traindata, batch_size=4, shuffle=True, num_workers=0)
+    # nn_model = Net()
+    # PATH = "training_data/"
+    # SUB_PATH = "attempt3/"
+    # NN_NAME = "mcts_nn_model_20000_20_20.pt"
+    # NN_PATH = PATH + SUB_PATH + NN_NAME
+    # nn_model = load_model(NN_PATH)
+    # traindata = BoardDataLoader(transformed_board_data, 49)
     # for i, data in enumerate(dataloader, 0):
     #     inputs, labels = data
     #     print(labels.shape)
-    t = time.time()
-    train(net, traindata, lr=1e-3, batch_size=64)
-    print(time.time() - t)
 
+    # nn_model(traindata[2][0].unsqueeze(0))
+    # nn_model(traindata[1][0].unsqueeze(0))
+
+    # t = time.time()
+    # train(nn_model, traindata, lr=1e-3, batch_size=2, total_epoch=1)
+    # print(time.time() - t)
+    pass

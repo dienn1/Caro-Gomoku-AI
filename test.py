@@ -19,7 +19,7 @@ def str_board(board):
 if __name__ == "__main__":
     PATH = "training_data/"
     SUB_PATH = "attempt3/"
-    NN_NAME = "mcts_nn_model_20_20000.pt"
+    NN_NAME = "mcts_nn_model_20000_20_20.pt"
     NN_PATH = PATH + SUB_PATH + NN_NAME
     nn_model = load_model(NN_PATH)
     # nn_model, loaded_data = load_model_and_train(parent_dir=PATH+SUB_PATH, model_name=NN_NAME, first=7, last=11,
@@ -27,14 +27,14 @@ if __name__ == "__main__":
     evaluate = get_evaluate_function(nn_model)
 
     dim = 15
-    count = 20
+    count = 1
     n_sim1 = 20000
     min_visit1 = 20
     n_sim2 = 20000
     min_visit2 = 20
 
     eval1 = evaluate
-    eval2 = None
+    eval2 = evaluate
     with torch.inference_mode():
         self_play(dim, count, n_sim1, min_visit1, eval1, n_sim2, min_visit2, eval2, verbose=True, eval_model=evaluate)
     # outfile.close()

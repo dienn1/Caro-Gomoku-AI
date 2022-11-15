@@ -1,11 +1,12 @@
 from Caro_pybind import Caro, Point
 from MCTS_pybind import MCTS_AI
-from data_handler import save_raw_data, create_data_point, board_to_np, np_board_to_tensor
+from data_handler import save_raw_data, create_data_point, board_to_np, np_board_to_tensor, process_board
 import time
 
 
 def get_evaluate_function(model):
     def evaluate(board):
+        board = process_board(board)
         board = board_to_np(board)
         board = np_board_to_tensor(board, unsqueeze=True)
         return model(board)
