@@ -25,7 +25,27 @@ class Net(nn.Module):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
-        x = self.sigmoid(x)
+        print(np.abs(x.detach().numpy().std(axis=0)).mean())
+        print("-------------")
+        return x
+
+class SmallNet(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(2, 16, 2)
+        self.fc1 = nn.Linear(64, 120)
+        self.fc2 = nn.Linear(120, 84)
+        self.fc3 = nn.Linear(84, 1)
+
+    def forward(self, x):
+        # print(np.abs(x.detach().numpy().std(axis=0)).mean())
+        x = F.relu(self.conv1(x))
+        x = torch.flatten(x, 1)     # flatten all dimensions except batch
+        x = F.relu(self.fc1(x))
+        x = self.fc2(x)
+        x = self.fc3(x)
+        # print(np.abs(x.detach().numpy().std(axis=0)).mean())
+        # print("-------------")
         return x
 
 
@@ -40,7 +60,7 @@ def save_model(model, model_path):
     torch.save(model.state_dict(), model_path)
 
 
-def train(model, traindata, batch_size=32, lr=0.0001, num_workers=0, total_epoch=25):
+def train(model, traindata, batch_size=32, lr=0.0001, num_workers=0, total_epoch=10):
     # criterion = nn.BCELoss()
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=lr)
@@ -51,7 +71,7 @@ def train(model, traindata, batch_size=32, lr=0.0001, num_workers=0, total_epoch
         for i, data in enumerate(trainloader, 0):
             # get the inputs; data is a list of [inputs, labels]
             inputs, labels = data
-
+            # print(np.abs(labels.detach().numpy().std(axis=0)).mean())
             # zero the parameter gradients
             optimizer.zero_grad()
 

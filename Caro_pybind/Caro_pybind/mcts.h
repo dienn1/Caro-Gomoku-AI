@@ -5,7 +5,10 @@
 #include "tree.h"
 #include <cmath>
 #include <functional>
+#include <cstdlib>
+#include <time.h>
 #include "constants.h"
+#include <string>
 using namespace constants;
 
 
@@ -15,7 +18,9 @@ private:
     int min_visits;
     int n_sim;
     bool use_prior;
-    std::function<double(std::array<std::array<int, 30>, 30>)> evaluate_prior;
+    unsigned int prior_strength;
+    std::function<double(std::array<std::array<int, 30>, 30>, int)> evaluate_prior;
+    std::string mode;
 
     static double uct(TreeNode* node)
     {
@@ -37,13 +42,16 @@ private:
     int mcts(TreeNode* node);
     TreeNode* mcts_selection(TreeNode* node);
     static TreeNode* reward_selection(TreeNode* node);
+    static TreeNode* random_selection(TreeNode* node);
+    TreeNode* posterior_selection(TreeNode* node);
     int simulate();
     void expand_node(TreeNode* node);
-    double evaluate_node(TreeNode* node);
+    double posterior_eval(TreeNode* node) const;
+    double evaluate_node(TreeNode* node) const;
 
 public:
-    MCTS_AI(int _player, int _min_visits, int _n_sim, Caro const& _board, int _ai_moves_range = 1, std::function<double(std::array<std::array<int, 30>, 30>)> _eval = nullptr) :
-    player(_player), min_visits(_min_visits), n_sim(_n_sim), current_node(nullptr), AI_moves_range(_ai_moves_range), evaluate_prior(_eval), use_prior(false),
+    MCTS_AI(int _player, int _min_visits, int _n_sim, Caro const& _board, std::string _mode="greedy", int _ai_moves_range = 1, std::function<double(std::array<std::array<int, 30>, 30>, int)> _eval = nullptr, int _prior_strength = -1) :
+    player(_player), min_visits(_min_visits), n_sim(_n_sim), current_node(nullptr), AI_moves_range(_ai_moves_range), evaluate_prior(_eval), use_prior(false), mode(_mode),
     child_count(0), expanded_nodes_count(0), current_depth(0), current_max_depth(0)
     {
         board = Caro(_board);
@@ -52,7 +60,16 @@ public:
         if (evaluate_prior != nullptr)
         {
             use_prior = true;
+            if (_prior_strength < 0)
+            {
+                prior_strength = min_visits * 2 + 1;
+            }
+            else
+            {
+                prior_strength = _prior_strength;
+            }
         }
+        std::srand(std::time(0));
     }
     ~MCTS_AI();
 
@@ -70,6 +87,10 @@ public:
 
     [[nodiscard]] double predicted_reward() const
     {
+        if (mode == "greedy_post")
+        {
+            return player * posterior_eval(current_node);
+        }
         return player * current_node->average_reward();
     }
 

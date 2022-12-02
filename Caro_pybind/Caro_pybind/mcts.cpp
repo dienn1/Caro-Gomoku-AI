@@ -13,28 +13,33 @@ void MCTS_AI::expand_node(TreeNode *node)
     auto board_temp = board.get_board();
     for (Point const& p : moves)
     {
-        auto* child = new TreeNode(p, -node->player, node);
+        auto* child = new TreeNode(p, -node->player, node, depth);
         nodes_vector.push_back(child);
         node->children.push_back(child);
 
         if (use_prior)  // evaluate prior for each node if a prior is given
         {
+
             board_temp[p(0)][p(1)] = child->player;
-            child->prior_eval = evaluate_prior(board_temp);
+            child->prior_eval = evaluate_prior(board_temp, board.get_dim());
             board_temp[p(0)][p(1)] = 0;
         }
     }
     child_count += node->children.size();
 }
 
-double MCTS_AI::evaluate_node(TreeNode* node)
+double MCTS_AI::posterior_eval(TreeNode* node) const
+{
+    return node->player * (node->prior_eval * prior_strength + node->total_reward) / (prior_strength + node->visit_count);
+}
+
+double MCTS_AI::evaluate_node(TreeNode* node) const
 {
     if (!use_prior)
     {
         return node->uct();
     }
-    int prior_strength = min_visits * 2;
-    return node->player * (node->prior_eval * prior_strength + node->total_reward)/(prior_strength + node->visit_count) + node->exploration_value();
+    return posterior_eval(node) + node->exploration_value();
 }
 
 int MCTS_AI::mcts(TreeNode *node)
@@ -91,9 +96,6 @@ TreeNode* MCTS_AI::mcts_selection(TreeNode *node)
 
 int MCTS_AI::simulate()
 {
-//    Caro temp_board = Caro(board);
-//    temp_board.simulate();
-//    int final_state = temp_board.get_state();
     int current_turn = board.get_turn_count();
     board.simulate();
     int end_turn = board.get_turn_count();
@@ -108,7 +110,8 @@ int MCTS_AI::simulate()
 Point MCTS_AI::get_move(Point prev_move)
 {
     board.play(prev_move);
-    if (current_node == nullptr)    // AI first move, current_node will be nullptr
+    // AI first move, current_node will be nullptr
+    if (current_node == nullptr)
     {
         current_node = new TreeNode(prev_move, -player, nullptr, board.get_turn_count());
         nodes_vector.push_back(current_node);
@@ -125,6 +128,12 @@ Point MCTS_AI::get_move(Point prev_move)
             }
         }
     }
+
+    if (current_node->children.empty())     // Initialize child nodes if empty
+    {
+        expand_node(current_node);
+    }
+
     current_depth = current_node->turn_count;
 
     // MCTS for n_sim iterations
@@ -132,19 +141,68 @@ Point MCTS_AI::get_move(Point prev_move)
     {
         mcts(current_node);
     }
-    current_node =  reward_selection(current_node);
+
+    if (mode == "random")
+    {
+        current_node = random_selection(current_node);
+    }
+    else if (mode == "mcts")
+    {
+        current_node = mcts_selection(current_node);
+    }
+    else if (mode == "greedy_post")
+    {
+        current_node = posterior_selection(current_node);
+        std::cout << "PLAY " << current_node->move.to_string() << std::endl;
+    }
+    else if (mode == "greedy")
+    {
+        current_node = reward_selection(current_node);
+    }
+    else
+    {
+        std::cout << "INVALID MODE" << std::endl;
+        exit(69);
+    }
     board.play(current_node->move);
+    if (current_node->children.empty())     // Initialize child nodes if empty
+    {
+        expand_node(current_node);
+    }
     return current_node->move;
 }
 
 // Pick move based on average_reward
 TreeNode *MCTS_AI::reward_selection(TreeNode *node) {
-    TreeNode* current = node->children[0];      // THIS LINE IS BUGGED FOR SOME REASON AFRER USING GET CURRENT_NODE IN PYTHON
+    TreeNode* current = node->children[0];      // THIS LINE IS BUGGED FOR SOME REASON AFRER USING GET CURRENT_NODE IN PYTHON -> BECAUSE GARBAGE COLLECTOR OMEGALUL
     for (TreeNode* child : node->children)
     {
         if (current->average_reward() < child->average_reward())
         {
             current = child;
+        }
+    }
+    return current;
+}
+
+TreeNode* MCTS_AI::random_selection(TreeNode* node)
+{
+    int rand_index = std::rand() % node->children.size();
+    return node->children[rand_index];
+}
+
+TreeNode* MCTS_AI::posterior_selection(TreeNode* node)
+{
+    TreeNode* current = node->children[0];
+    double current_eval = posterior_eval(current);
+    double child_eval = 0;
+    for (TreeNode* child : node->children)
+    {
+        child_eval = posterior_eval(child);
+        if (current_eval < child_eval)
+        {
+            current = child;
+            current_eval = child_eval;
         }
     }
     return current;

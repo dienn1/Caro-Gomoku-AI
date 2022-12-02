@@ -5,25 +5,29 @@ import time
 
 
 def get_evaluate_function(model):
-    def evaluate(board):
-        board = process_board(board)
-        board = board_to_np(board)
+    def evaluate(board, dim):
+        board = process_board(board, dim)
+        board = board_to_np(board, dim=len(board))
+        # print(board)
         board = np_board_to_tensor(board, unsqueeze=True)
-        return model(board)
+        res = model(board)
+        # print(res)
+        return res
     return evaluate
 
 
 # Return data points from self-play
-def self_play(dim, count, n_sim1, min_visit1, eval1, n_sim2, min_visit2, eval2, outfile=None, verbose=False, eval_model=None):
+def self_play(dim, count, play_count, n_sim1, min_visit1, eval1, mode1, n_sim2, min_visit2, eval2, mode2, outfile=None,
+              verbose=False, eval_model=None):
     x_win = 0
     data_count = 0
     data_points = list()
-    for i in range(count):
+    for i in range(play_count):
         total_t = time.time()
-        caro_board = Caro(dim)
+        caro_board = Caro(dim, count)
         caro_board.disable_print()
-        mcts_ai = MCTS_AI(1, min_visit1, n_sim1, caro_board, _eval=eval1)
-        mcts_ai2 = MCTS_AI(-1, min_visit2, n_sim2, caro_board, _eval=eval2)
+        mcts_ai = MCTS_AI(1, min_visit1, n_sim1, caro_board, _eval=eval1, _mode=mode1)
+        mcts_ai2 = MCTS_AI(-1, min_visit2, n_sim2, caro_board, _eval=eval2, _mode=mode2)
         while not caro_board.has_ended():
             t = time.time()
             caro_board.play(mcts_ai.get_move(caro_board.get_prev_move()))
@@ -32,7 +36,7 @@ def self_play(dim, count, n_sim1, min_visit1, eval1, n_sim2, min_visit2, eval2, 
                 print("DEPTH:", mcts_ai.get_tree_depth())
                 print("X PLAYED", caro_board.get_prev_move(), "with predicted reward", mcts_ai.predicted_reward())
                 if eval_model:
-                    pred = float(eval_model(caro_board.get_board()))
+                    pred = float(eval_model(caro_board.get_board(), caro_board.get_dim()))
                     print("MODEL REWARD PREDICTION:", pred)
                 print(caro_board)
             data_points.append(create_data_point(mcts_ai, caro_board))
@@ -50,7 +54,7 @@ def self_play(dim, count, n_sim1, min_visit1, eval1, n_sim2, min_visit2, eval2, 
                 print("DEPTH:", mcts_ai2.get_tree_depth())
                 print("O PLAYED", caro_board.get_prev_move(), "with predicted reward", mcts_ai2.predicted_reward())
                 if eval_model:
-                    pred = float(eval_model(caro_board.get_board()))
+                    pred = float(eval_model(caro_board.get_board(), caro_board.get_dim()))
                     print("MODEL REWARD PREDICTION:", pred)
                 print(caro_board)
             data_points.append(create_data_point(mcts_ai2, caro_board))
@@ -73,7 +77,7 @@ def self_play(dim, count, n_sim1, min_visit1, eval1, n_sim2, min_visit2, eval2, 
         print("------------------------------------------------------------------------\n")
 
     if verbose:
-        print(x_win / count)
+        print(x_win / play_count)
     if outfile:
         outfile.write(str(data_count) + "\n")
     return data_points

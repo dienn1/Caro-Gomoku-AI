@@ -10,11 +10,10 @@ const Point UP_RIGHT(-1,1);
 const Point UP_LEFT(-1,-1);
 
 
-Caro::Caro(int _dim, int _ai_moves_range): prev_move(Point(-1, -1)), AI_moves_range(_ai_moves_range)
+Caro::Caro(int _dim, int count, int _ai_moves_range): prev_move(Point(-1, -1)), AI_moves_range(_ai_moves_range), COUNT(count)
 {
     print = true;
 
-    COUNT = 5;
     turn_count = 0;
     dim = std::min(_dim, MAX_DIM);
     size = dim * dim;

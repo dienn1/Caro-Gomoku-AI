@@ -67,10 +67,9 @@ struct PointHashFunction
 class Caro
 {
 public:
-    //int board[30][30] = {}; 
     std::array<std::array<int, 30>, 30> board = {}; // Empty board (all zeros), 30x30 is the max size
 
-    explicit Caro(int _dim=19, int _ai_moves_range=1);
+    explicit Caro(int _dim=19, int count=5, int _ai_moves_range=1);
 
     std::string to_string();
 
