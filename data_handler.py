@@ -171,9 +171,9 @@ def load_data(data_dir, data_count=10000, no_duplicate=False):
     return traindata
 
 
-def load_data_and_train(data_dir, model, data_count=10000, total_epoch=25, no_duplicate=False):
+def load_data_and_train(data_dir, model, data_count=10000, lr=0.0001, batch_size=32, total_epoch=25, no_duplicate=False):
     traindata = load_data(data_dir, data_count=data_count, no_duplicate=no_duplicate)
-    train(model, traindata, total_epoch=total_epoch)
+    train(model, traindata, total_epoch=total_epoch, batch_size=batch_size, lr=lr)
     return traindata
 
 

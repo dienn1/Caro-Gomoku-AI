@@ -1,8 +1,19 @@
 import torch
 from data_handler import load_raw_board_data, board_to_np, raw_data_transform, np_board_to_tensor, BoardDataLoader
-from model import Net, SmallNet, train, load_model
-from self_play import self_play, get_evaluate_function
+from model import Net, SmallNet, train, load_model, FFNet
+from self_play import self_play, get_evaluate_function, SelfPlay
 from data_handler import load_model_and_train, load_data_and_train
+import random
+import time
+
+
+def random_baseline(board, dim):
+    return random.uniform(-1, 1)
+
+
+def beta_baseline(board, dim):
+    alpha, beta = 4, 4
+    return 2*random.betavariate(alpha, beta) - 1
 
 
 def str_board(board):
@@ -17,8 +28,12 @@ def str_board(board):
 
 
 if __name__ == "__main__":
+    dim = 7
+    count = 5
+    play_count = 10
+
     PATH = "training_data/"
-    SUB_PATH = "TicTacTest/"
+    SUB_PATH = "Test7x7/"
     # NN_NAME = "mcts_nn_model_20000_20_20.pt"
     # NN_PATH = PATH + SUB_PATH + NN_NAME
     # nn_model = load_model(NN_PATH)
@@ -29,28 +44,40 @@ if __name__ == "__main__":
     dir_path = PATH + SUB_PATH + "pass0" + ".txt"
     # outfile = open(dir_path, "a")
     outfile = None
-    model = SmallNet()
-    data = load_data_and_train(dir_path, model, data_count=10000, total_epoch=25, no_duplicate=True)
+    model = Net()
+    # model = SmallNet()
+    # model = FFNet(dim*dim)
+    t = time.time()
+    data = load_data_and_train(dir_path, model, data_count=100000,
+                               lr=0.0005, batch_size=64, total_epoch=5, no_duplicate=True)
+    print("Loading data and training takes", time.time()-t)
     print(len(data))
     evaluate = get_evaluate_function(model)
+    # evaluate = beta_baseline
+    # evaluate = None
+    # exit()
 
-    dim = 3
-    count = 3
-    play_count = 10
-    n_sim1 = 0
-    min_visit1 = 0
-    n_sim2 = 1
-    min_visit2 = 1
-    mode1 = "greedy_post"
-    mode2 = "random"
+    AI_move_range = 1
+    AI1_params = {"n_sim": 10000,
+                  "min_visit": 10,
+                  "AI_move_range": AI_move_range,
+                  "mode": "random",
+                  "eval": None}
+    AI2_params = {"n_sim": 400,
+                  "min_visit": 1,
+                  "AI_move_range": AI_move_range,
+                  "mode": "greedy",
+                  "eval": evaluate}
 
-    eval1 = evaluate
-    eval2 = None
+    game_master = SelfPlay(dim, count, AI1_params, AI2_params,
+                           verbose=True, eval_model=evaluate, outfile=outfile)
     try:
+        t = time.time()
         with torch.inference_mode():
-            self_play(dim, count, play_count, n_sim1, min_visit1, eval1, mode1, n_sim2, min_visit2, eval2, mode2,
-                      verbose=True, eval_model=evaluate, outfile=outfile)
+            game_master.self_play(play_count)
+        print("Time for " + str(play_count) + " games of self-play:", time.time() - t)
     finally:
-        # outfile.close()
-        pass
+        if outfile:
+            outfile.close()
+        # pass
 

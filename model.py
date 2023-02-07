@@ -9,33 +9,79 @@ import numpy as np
 class Net(nn.Module):
     def __init__(self):
         super().__init__()
-        self.conv1 = nn.Conv2d(2, 6, 5)
-        self.pool = nn.MaxPool2d(2, 2)
-        self.conv2 = nn.Conv2d(6, 16, 3)
-        self.fc1 = nn.Linear(64, 120)
-        self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 1)
-        self.sigmoid = nn.Sigmoid()
+        self.conv1 = nn.Conv2d(2, 256, 3, padding="same")
+        self.conv2 = nn.Conv2d(256, 256, 3)
+        self.conv3 = nn.Conv2d(256, 16, 1)
+        self.fc1 = nn.Linear(400, 800)
+        self.fc2 = nn.Linear(800, 256)
+        self.fc3 = nn.Linear(256, 1)
+        self.tanh = nn.Tanh()
 
     def forward(self, x):
         # print(np.abs(x.detach().numpy().std(axis=0)).mean())
-        x = self.pool(F.relu(self.conv1(x)))
-        x = self.pool(F.relu(self.conv2(x)))
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
+        x = F.relu(self.conv3(x))
         x = torch.flatten(x, 1)     # flatten all dimensions except batch
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
-        print(np.abs(x.detach().numpy().std(axis=0)).mean())
-        print("-------------")
+        x = self.tanh(x)
+        # print(np.abs(x.detach().numpy().std(axis=0)).mean())
+        # print("-------------")
         return x
 
+
 class SmallNet(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(2, 256, 3)
+        self.conv2 = nn.Conv2d(256, 16, 1)
+        self.fc1 = nn.Linear(400, 800)
+        self.fc2 = nn.Linear(800, 256)
+        self.fc3 = nn.Linear(256, 1)
+        self.tanh = nn.Tanh()
+
+    def forward(self, x):
+        # print(np.abs(x.detach().numpy().std(axis=0)).mean())
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
+        x = torch.flatten(x, 1)     # flatten all dimensions except batch
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
+        x = self.tanh(x)
+        # print(np.abs(x.detach().numpy().std(axis=0)).mean())
+        # print("-------------")
+        return x
+
+class FFNet(nn.Module):
+    def __init__(self, input_size):
+        super().__init__()
+        self.fc1 = nn.Linear(input_size*2, 400)
+        self.fc2 = nn.Linear(400, 800)
+        self.fc3 = nn.Linear(800, 256)
+        self.fc4 = nn.Linear(256, 1)
+        self.tanh = nn.Tanh()
+
+    def forward(self, x):
+        x = torch.flatten(x, 1)
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.fc3(x))
+        x = self.fc4(x)
+        x = self.tanh(x)
+        return x
+
+
+class MiniNet(nn.Module):
     def __init__(self):
         super().__init__()
         self.conv1 = nn.Conv2d(2, 16, 2)
         self.fc1 = nn.Linear(64, 120)
         self.fc2 = nn.Linear(120, 84)
         self.fc3 = nn.Linear(84, 1)
+        self.tanh = nn.Tanh()
 
     def forward(self, x):
         # print(np.abs(x.detach().numpy().std(axis=0)).mean())
@@ -44,6 +90,7 @@ class SmallNet(nn.Module):
         x = F.relu(self.fc1(x))
         x = self.fc2(x)
         x = self.fc3(x)
+        x = self.tanh(x)
         # print(np.abs(x.detach().numpy().std(axis=0)).mean())
         # print("-------------")
         return x
@@ -60,7 +107,7 @@ def save_model(model, model_path):
     torch.save(model.state_dict(), model_path)
 
 
-def train(model, traindata, batch_size=32, lr=0.0001, num_workers=0, total_epoch=10):
+def train(model, traindata, batch_size=32, lr=0.0001, num_workers=0, total_epoch=25):
     # criterion = nn.BCELoss()
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=lr)

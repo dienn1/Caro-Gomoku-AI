@@ -19,7 +19,6 @@ void MCTS_AI::expand_node(TreeNode *node)
 
         if (use_prior)  // evaluate prior for each node if a prior is given
         {
-
             board_temp[p(0)][p(1)] = child->player;
             child->prior_eval = evaluate_prior(board_temp, board.get_dim());
             board_temp[p(0)][p(1)] = 0;
@@ -28,25 +27,25 @@ void MCTS_AI::expand_node(TreeNode *node)
     child_count += node->children.size();
 }
 
-double MCTS_AI::posterior_eval(TreeNode* node) const
+float MCTS_AI::posterior_eval(TreeNode* node) const
 {
     return node->player * (node->prior_eval * prior_strength + node->total_reward) / (prior_strength + node->visit_count);
 }
 
-double MCTS_AI::evaluate_node(TreeNode* node) const
+float MCTS_AI::evaluate_node(TreeNode* node) const
 {
     if (!use_prior)
     {
         return node->uct();
     }
-    return posterior_eval(node) + node->exploration_value();
+    return posterior_eval(node) + node->exploration_value(use_prior);
 }
 
-int MCTS_AI::mcts(TreeNode *node)
+float MCTS_AI::mcts(TreeNode *node)
 {
-    node->visit_count++;
     if (node->visit_count >= min_visits)    // matured node
     {
+        node->visit_count++;
         if (node->children.empty())     // Initialize child nodes if empty
         {
             expand_node(node);
@@ -62,7 +61,7 @@ int MCTS_AI::mcts(TreeNode *node)
             board.undo();
             return result;
         }
-        int result = mcts(next); // recursion call mcts on node next if game doesn't end
+        float result = mcts(next); // recursion call mcts on node next if game doesn't end
         board.undo();
         // propagate result back up
         node->total_reward += result;
@@ -70,7 +69,16 @@ int MCTS_AI::mcts(TreeNode *node)
     }
     else        // not enough maturity
     {
-        int result = simulate();
+        node->visit_count++;
+        float result = 0;
+        if (use_prior)
+        {
+            result = node->prior_eval;
+        }
+        else
+        {
+            result = simulate();
+        }
         // propagate result back up
         node->total_reward += result;
         return result;
@@ -194,8 +202,8 @@ TreeNode* MCTS_AI::random_selection(TreeNode* node)
 TreeNode* MCTS_AI::posterior_selection(TreeNode* node)
 {
     TreeNode* current = node->children[0];
-    double current_eval = posterior_eval(current);
-    double child_eval = 0;
+    float current_eval = posterior_eval(current);
+    float child_eval = 0;
     for (TreeNode* child : node->children)
     {
         child_eval = posterior_eval(child);

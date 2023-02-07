@@ -11,10 +11,10 @@ if __name__ == "__main__":
     MAX_TRAINING_DATA_SIZE = 1000
 
     batch_size = 64
-    training_epoch = 25
-    learning_rate = 0.0001
+    training_epoch = 5
+    learning_rate = 0.0005
 
-    dim = 15
+    dim = 7
     count = 20
     n_sim = 20000
     min_visit = 20
