@@ -34,6 +34,11 @@ public:
         return X == p.X && Y == p.Y;
     }
 
+    bool operator!=(const Point& p) const
+    {
+        return !(*this == p);
+    }
+
     bool operator<(const Point& p) const
     {
         return (X < p.X) || (X <= p.X && (Y < p.Y));

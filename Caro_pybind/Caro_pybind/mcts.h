@@ -9,6 +9,7 @@
 #include <time.h>
 #include "constants.h"
 #include <string>
+#include <random>
 using namespace constants;
 
 
@@ -21,6 +22,7 @@ private:
     unsigned int prior_strength;
     std::function<float(std::array<std::array<int, 30>, 30>, int)> evaluate_prior;
     std::string mode;
+    int random_threshold;
 
     static double uct(TreeNode* node)
     {
@@ -43,6 +45,8 @@ private:
     TreeNode* mcts_selection(TreeNode* node);
     static TreeNode* reward_selection(TreeNode* node);
     static TreeNode* random_selection(TreeNode* node);
+    static TreeNode* visit_selection(TreeNode* node);
+    static TreeNode* weighted_visit_selection(TreeNode* node);
     TreeNode* posterior_selection(TreeNode* node);
     int simulate();
     void expand_node(TreeNode* node);
@@ -51,9 +55,9 @@ private:
 
 public:
     MCTS_AI(int _player, int _min_visits, int _n_sim, Caro const& _board, std::string _mode="greedy", int _ai_moves_range = 1, 
-        std::function<float(std::array<std::array<int, 30>, 30>, int)> _eval = nullptr, int _prior_strength = 0) :
+        std::function<float(std::array<std::array<int, 30>, 30>, int)> _eval = nullptr, int _prior_strength = 1, int _random_threshold = 8) :
     player(_player), min_visits(_min_visits), n_sim(_n_sim), current_node(nullptr), AI_moves_range(_ai_moves_range), evaluate_prior(_eval), use_prior(false), mode(_mode),
-    child_count(0), expanded_nodes_count(0), current_depth(0), current_max_depth(0)
+    child_count(0), expanded_nodes_count(0), current_depth(0), current_max_depth(0), random_threshold(_random_threshold)
     {
         board = Caro(_board);
         board.set_AI_moves_range(AI_moves_range);
@@ -61,7 +65,7 @@ public:
         if (evaluate_prior != nullptr)
         {
             use_prior = true;
-            if (_prior_strength > 0)
+            if (_prior_strength >= 0)
             {
                 prior_strength = _prior_strength;
             }

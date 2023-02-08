@@ -51,7 +51,7 @@ class BoardDataLoader(Dataset):
             self.unique_data[hashed_d]["count"] += 1
             current_avg = self.unique_data[hashed_d]["reward"]
             self.unique_data[hashed_d]["reward"] = current_avg + (d[1] - current_avg) / self.unique_data[hashed_d]["count"]
-            self.data[self.unique_data[hashed_d]["index"]] = [self.unique_data[hashed_d]["tensor"], self.unique_data[d]["reward"]]
+            self.data[self.unique_data[hashed_d]["index"]] = [self.unique_data[hashed_d]["tensor"], self.unique_data[hashed_d]["reward"]]
 
     def extend(self, data):
         for d in data:
@@ -125,11 +125,8 @@ def np_board_to_tensor_batch(np_data, unsqueeze=False):
         np_data[i][0] = np_board_to_tensor(np_data[i][0], unsqueeze=unsqueeze)
 
 
-def save_raw_data(f, mcts_ai, caro_board):
-    reward = mcts_ai.predicted_reward()
+def save_raw_data(f, reward, board_array, dim):
     res = ""
-    board_array = caro_board.get_board()
-    dim = caro_board.get_dim()
     for i in range(dim):
         for j in range(dim):
             tmp = board_array[i][j]
@@ -156,12 +153,10 @@ def process_board(board_array, dim=15):
 
 # create a datapoint for NN training purpose
 # FORMAT [board_array, reward]
-def create_data_point(mcts_ai, caro_board):
-    board_array = caro_board.get_board()
-    dim = caro_board.get_dim()
+def create_data_point(reward, board_array, dim):
     board_array = process_board(board_array, dim)
     np_board = board_to_np(board_array, dim)
-    return [np_board, mcts_ai.predicted_reward()]
+    return [np_board, reward]
 
 
 def load_data(data_dir, data_count=10000, no_duplicate=False):
@@ -171,7 +166,7 @@ def load_data(data_dir, data_count=10000, no_duplicate=False):
     return traindata
 
 
-def load_data_and_train(data_dir, model, data_count=10000, lr=0.0001, batch_size=32, total_epoch=25, no_duplicate=False):
+def load_data_and_train(data_dir, model, data_count=10000, lr=0.0001, batch_size=32, total_epoch=5, no_duplicate=False):
     traindata = load_data(data_dir, data_count=data_count, no_duplicate=no_duplicate)
     train(model, traindata, total_epoch=total_epoch, batch_size=batch_size, lr=lr)
     return traindata

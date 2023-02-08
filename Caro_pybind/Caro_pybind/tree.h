@@ -19,9 +19,10 @@ public:
     int turn_count;
 
     float prior_eval;
+    float noise;
 
     TreeNode(Point _move, int _player, TreeNode* _parent=nullptr, int _turn_count=0):
-            move(_move), player(_player), parent(_parent), visit_count(0), total_reward(0), prior_eval(0)
+            move(_move), player(_player), parent(_parent), visit_count(0), total_reward(0), prior_eval(0), noise(0)
     {
         if (_turn_count > 0)
         {
@@ -46,5 +47,7 @@ public:
     [[nodiscard]] int get_player() const;
 
     [[nodiscard]] std::string to_string() const;
+
+    void generate_noise();
 };
 #endif //CARO_CPP_TREE_H

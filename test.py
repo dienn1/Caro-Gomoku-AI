@@ -44,8 +44,10 @@ if __name__ == "__main__":
     dir_path = PATH + SUB_PATH + "pass0" + ".txt"
     # outfile = open(dir_path, "a")
     outfile = None
-    model = Net()
-    # model = SmallNet()
+    # dir_path_t = PATH + SUB_PATH + "pass1" + ".txt"
+    # outfile = open(dir_path_t, "a")
+    # model = Net()
+    model = SmallNet()
     # model = FFNet(dim*dim)
     t = time.time()
     data = load_data_and_train(dir_path, model, data_count=100000,
@@ -58,19 +60,19 @@ if __name__ == "__main__":
     # exit()
 
     AI_move_range = 1
-    AI1_params = {"n_sim": 10000,
-                  "min_visit": 10,
+    AI1_params = {"n_sim": 400,
+                  "min_visit": 1,
                   "AI_move_range": AI_move_range,
-                  "mode": "random",
-                  "eval": None}
+                  "mode": "alpha_zero",
+                  "eval": evaluate}
     AI2_params = {"n_sim": 400,
                   "min_visit": 1,
                   "AI_move_range": AI_move_range,
-                  "mode": "greedy",
+                  "mode": "alpha_zero",
                   "eval": evaluate}
 
     game_master = SelfPlay(dim, count, AI1_params, AI2_params,
-                           verbose=True, eval_model=evaluate, outfile=outfile)
+                           verbose=False, eval_model=evaluate, outfile=outfile, reward_outcome=True)
     try:
         t = time.time()
         with torch.inference_mode():

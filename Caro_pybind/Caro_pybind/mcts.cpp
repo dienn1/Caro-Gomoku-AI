@@ -29,6 +29,10 @@ void MCTS_AI::expand_node(TreeNode *node)
 
 float MCTS_AI::posterior_eval(TreeNode* node) const
 {
+    if (prior_strength == 0 && node->visit_count == 0)
+    {
+        return 0;
+    }
     return node->player * (node->prior_eval * prior_strength + node->total_reward) / (prior_strength + node->visit_count);
 }
 
@@ -70,7 +74,7 @@ float MCTS_AI::mcts(TreeNode *node)
     else        // not enough maturity
     {
         node->visit_count++;
-        float result = 0;
+        float result;
         if (use_prior)
         {
             result = node->prior_eval;
@@ -78,6 +82,10 @@ float MCTS_AI::mcts(TreeNode *node)
         else
         {
             result = simulate();
+        }
+        if (node->visit_count >= min_visits)    // if matured
+        {
+            expand_node(node);
         }
         // propagate result back up
         node->total_reward += result;
@@ -117,7 +125,10 @@ int MCTS_AI::simulate()
 
 Point MCTS_AI::get_move(Point prev_move)
 {
-    board.play(prev_move);
+    if (prev_move != Point(-1, -1))
+    {
+        board.play(prev_move);
+    }
     // AI first move, current_node will be nullptr
     if (current_node == nullptr)
     {
@@ -167,6 +178,25 @@ Point MCTS_AI::get_move(Point prev_move)
     {
         current_node = reward_selection(current_node);
     }
+    else if (mode == "greedy_visit")
+    {
+        current_node = visit_selection(current_node);
+    }
+    else if (mode == "weighted_visit")
+    {
+        current_node = weighted_visit_selection(current_node);
+    }
+    else if (mode == "alpha_zero")
+    {
+        if (board.get_turn_count() <= random_threshold)
+        {
+            current_node = weighted_visit_selection(current_node);
+        }
+        else
+        {
+            current_node = visit_selection(current_node);
+        }
+    }
     else
     {
         std::cout << "INVALID MODE" << std::endl;
@@ -197,6 +227,45 @@ TreeNode* MCTS_AI::random_selection(TreeNode* node)
 {
     int rand_index = std::rand() % node->children.size();
     return node->children[rand_index];
+}
+
+TreeNode* MCTS_AI::visit_selection(TreeNode* node)
+{
+    TreeNode* current = node->children[0];
+    for (TreeNode* child : node->children)
+    {
+        if (current->visit_count < child->visit_count)
+        {
+            current = child;
+        }
+    }
+    return current;
+}
+
+// Select node proportional to its visit count
+TreeNode* MCTS_AI::weighted_visit_selection(TreeNode* node)
+{
+    int total_weights = 0;
+
+    for (int i = 0; i < node->children.size(); i++)
+    {
+        total_weights += node->children[i]->visit_count;
+    }
+
+    std::mt19937 rng(std::random_device{}());
+    std::uniform_real_distribution<float> udis(0, total_weights);
+    float rnd = udis(rng);
+
+    for (int i = 0; i < node->children.size(); i++)
+    {
+        if (rnd <= node->children[i]->visit_count)
+        {
+            return node->children[i];
+        }
+        rnd -= node->children[i]->visit_count;
+    }
+
+    return nullptr;
 }
 
 TreeNode* MCTS_AI::posterior_selection(TreeNode* node)

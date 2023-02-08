@@ -24,9 +24,9 @@ PYBIND11_MODULE(MCTS_pybind, m)
 		.def("__str__", &TreeNode::to_string);
 
 	py::class_<MCTS_AI>(m, "MCTS_AI")
-		.def(py::init<int, int, int, Caro const&, std::string, int, std::function<float(std::array<std::array<int, 30>, 30>, int)>, int>(),
+		.def(py::init<int, int, int, Caro const&, std::string, int, std::function<float(std::array<std::array<int, 30>, 30>, int)>, int, int>(),
 			py::arg("_player"), py::arg("_min_visits"), py::arg("_n_sim"), py::arg("_board"), 
-			py::arg("_mode") = "greedy", py::arg("_ai_moves_range") = 1, py::arg("_eval") = nullptr, py::arg("_prior_strength") = -1)
+			py::arg("_mode") = "greedy", py::arg("_ai_moves_range") = 1, py::arg("_eval") = nullptr, py::arg("_prior_strength") = 1, py::arg("_random_threshold") = 8)
 		.def("get_move", &MCTS_AI::get_move)
 		.def("get_tree_depth", &MCTS_AI::get_tree_depth)
 		.def("average_child_count", &MCTS_AI::average_child_count)

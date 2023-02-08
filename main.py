@@ -1,44 +1,74 @@
 import torch
-from data_handler import load_raw_board_data, board_to_np, raw_data_transform, np_board_to_tensor, BoardDataLoader, np_board_to_tensor_batch
-from model import Net, train, load_model, save_model
-from self_play import self_play, get_evaluate_function
-
+from data_handler import load_raw_board_data, load_data_and_train, BoardDataLoader, np_board_to_tensor_batch
+from model import Net, SmallNet, train, load_model, save_model
+from self_play import self_play, get_evaluate_function, SelfPlay
+import time
 
 if __name__ == "__main__":
-    PATH = "training_data/attemptTicTac/"
+    PATH = "training_data/"
+    SUB_PATH = "Test7x7/"
+
     MODEL_NAME = "mcts_nn_model"
-    training_pass = 11
-    MAX_TRAINING_DATA_SIZE = 1000
+    training_pass = 20
+    MAX_TRAINING_DATA_SIZE = 1000000
 
     batch_size = 64
-    training_epoch = 5
+    training_epoch = 2
     learning_rate = 0.0005
+    warm_up = True
 
     dim = 7
-    count = 20
-    n_sim = 20000
-    min_visit = 20
+    count = 5
+    play_count = 50
+    n_sim = 400
+    min_visit = 1
+    AI_move_range = 1
 
-    MODEL_NAME += "_" + str(n_sim) + "_" + str(min_visit) + "_" + str(count)
+    MODEL_NAME += "_" + str(n_sim) + "_" + str(min_visit) + "_" + str(play_count)
+    nn_model = SmallNet()
 
-    nn_model = Net()
+    dir_path = PATH + SUB_PATH + "pass0" + ".txt"
 
+    if warm_up:
+        print("WARMING-UP MODEL")
+        t = time.time()
+        data = load_data_and_train(dir_path, nn_model, data_count=100000,
+                                   lr=0.0005, batch_size=64, total_epoch=5, no_duplicate=True)
+        print("Loading data and training takes", time.time() - t)
+        print(len(data))
     evaluate = get_evaluate_function(nn_model)
-    eval1 = evaluate
-    eval2 = evaluate
 
     traindata = BoardDataLoader(list(), MAX_TRAINING_DATA_SIZE, no_duplicate=True)
-    # data = load_data_and_train("training_data/pass0.txt", nn_model)     # warm-up the model
+
     try:
         for i in range(training_pass):
-            dir_path = PATH + "pass" + str(i+1) + ".txt"
+            dir_path = PATH + SUB_PATH + "pass" + str(i+1) + ".txt"
             outfile = open(dir_path, "a")
+
+            AI1_params = {"n_sim": 400,
+                          "min_visit": 1,
+                          "AI_move_range": AI_move_range,
+                          "mode": "alpha_zero",
+                          "eval": evaluate}
+            AI2_params = {"n_sim": 400,
+                          "min_visit": 1,
+                          "AI_move_range": AI_move_range,
+                          "mode": "alpha_zero",
+                          "eval": evaluate}
+            game_master = SelfPlay(dim, count, AI1_params, AI2_params, eval_model=evaluate,
+                                   loss=None, verbose=False, outfile=outfile, reward_outcome=True)
+            t = time.time()
             with torch.inference_mode():
-                new_data = self_play(dim, count, n_sim, min_visit, eval1, n_sim, min_visit, eval2, verbose=False, outfile=outfile)
+                new_data = game_master.self_play(play_count)
+            print("Time for " + str(play_count) + " games of self-play:", time.time() - t)
+            outfile.close()
+
             np_board_to_tensor_batch(new_data, unsqueeze=False)
             traindata.extend(new_data)
-            outfile.close()
+            print("Training with " + str(len(traindata)) + " ")
             train(nn_model, traindata, lr=learning_rate, batch_size=batch_size, total_epoch=training_epoch)
-            torch.save(nn_model.state_dict(), PATH + MODEL_NAME + "_temp" + str(i) + ".pt")
+            torch.save(nn_model.state_dict(), PATH + SUB_PATH + MODEL_NAME + "_temp" + str(i) + ".pt")
+
+            evaluate = get_evaluate_function(nn_model)
     finally:
-        torch.save(nn_model.state_dict(), PATH + MODEL_NAME + ".pt")
+        torch.save(nn_model.state_dict(), PATH + SUB_PATH + MODEL_NAME + ".pt")
