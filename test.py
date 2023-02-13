@@ -34,9 +34,9 @@ if __name__ == "__main__":
 
     PATH = "training_data/"
     SUB_PATH = "Test7x7/"
-    # NN_NAME = "mcts_nn_model_20000_20_20.pt"
-    # NN_PATH = PATH + SUB_PATH + NN_NAME
-    # nn_model = load_model(NN_PATH)
+    NN_NAME = "mcts_nn_model_400_1_50.pt"
+    NN_PATH = PATH + SUB_PATH + NN_NAME
+    nn_model = load_model(NN_PATH, SmallNet)
     # nn_model, loaded_data = load_model_and_train(parent_dir=PATH+SUB_PATH, model_name=NN_NAME, first=7, last=11,
     #                                              lr=0.0001, batch_size=64, total_epoch=100)
     # evaluate = get_evaluate_function(nn_model)
@@ -55,24 +55,25 @@ if __name__ == "__main__":
     print("Loading data and training takes", time.time()-t)
     print(len(data))
     evaluate = get_evaluate_function(model)
+    eval2 = get_evaluate_function(nn_model)
     # evaluate = beta_baseline
     # evaluate = None
     # exit()
 
     AI_move_range = 1
-    AI1_params = {"n_sim": 400,
-                  "min_visit": 1,
+    AI1_params = {"n_sim": 1000,
+                  "min_visit": 10,
                   "AI_move_range": AI_move_range,
-                  "mode": "alpha_zero",
-                  "eval": evaluate}
-    AI2_params = {"n_sim": 400,
-                  "min_visit": 1,
+                  "mode": "greedy_visit",
+                  "eval": None}
+    AI2_params = {"n_sim": 1000,
+                  "min_visit": 10,
                   "AI_move_range": AI_move_range,
-                  "mode": "alpha_zero",
-                  "eval": evaluate}
+                  "mode": "greedy_visit",
+                  "eval": None}
 
     game_master = SelfPlay(dim, count, AI1_params, AI2_params,
-                           verbose=False, eval_model=evaluate, outfile=outfile, reward_outcome=True)
+                           verbose=True, eval_model=eval2, outfile=outfile, reward_outcome=True)
     try:
         t = time.time()
         with torch.inference_mode():

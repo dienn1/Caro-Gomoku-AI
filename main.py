@@ -12,7 +12,7 @@ if __name__ == "__main__":
     training_pass = 20
     MAX_TRAINING_DATA_SIZE = 1000000
 
-    batch_size = 64
+    batch_size = 32
     training_epoch = 2
     learning_rate = 0.0005
     warm_up = True
@@ -71,4 +71,4 @@ if __name__ == "__main__":
 
             evaluate = get_evaluate_function(nn_model)
     finally:
-        torch.save(nn_model.state_dict(), PATH + SUB_PATH + MODEL_NAME + ".pt")
+        torch.save(nn_model.state_dict(), PATH + SUB_PATH + MODEL_NAME + "_interrupted.pt")

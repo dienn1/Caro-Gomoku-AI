@@ -96,8 +96,8 @@ class MiniNet(nn.Module):
         return x
 
 
-def load_model(model_path):
-    model = Net()
+def load_model(model_path, ModelClass):
+    model = ModelClass()
     model.load_state_dict(torch.load(model_path))
     model.eval()
     return model
