@@ -90,25 +90,6 @@ if __name__ == "__main__":
     res = model(torch.reshape(rand_input, (1, 2, 7, 7)))
     print(pybind_model_test, res[0, 0].item())
 
-    # np_ff = [NPLinear(None, None)] * int(len(param)/2)
-    # for i in range(int(len(param)/2)):
-    #     np_linear = NPLinear(param[2*i], param[2*i + 1])
-    #     np_ff[i] = np_linear
-    #
-    # rand_input = torch.rand(10, 98)
-    # rand_input_np = rand_input.detach().numpy()
-    # a = model(rand_input).detach().numpy()
-    # b = rand_input_np
-    # for i in range(len(np_ff)-1):
-    #     b = np_ff[i](b)
-    #     b = np.maximum(b, 0)    # Relu
-    # b = np_ff[-1](b)
-    # b = np.tanh(b)
-    #
-    # print(a)
-    # print(b)
-    # print(a-b)
-
     exit()
 
     AI_move_range = 1
