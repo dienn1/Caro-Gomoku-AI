@@ -6,30 +6,42 @@ from torch.utils.data import DataLoader
 import numpy as np
 
 
-class Net(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.conv1 = nn.Conv2d(2, 256, 3, padding="same")
-        self.conv2 = nn.Conv2d(256, 256, 3)
-        self.conv3 = nn.Conv2d(256, 16, 1)
-        self.fc1 = nn.Linear(400, 800)
-        self.fc2 = nn.Linear(800, 256)
-        self.fc3 = nn.Linear(256, 1)
-        self.tanh = nn.Tanh()
+def optimize_model(model, input_dim=7):
+    traced_model = model
+    torch.jit.enable_onednn_fusion(True)
+    sample_input = torch.rand(32, 2, input_dim, input_dim)
+    # Tracing the model with example input
+    traced_model = torch.jit.trace(traced_model.eval(), sample_input)
+    # Invoking torch.jit.freeze
+    traced_model = torch.jit.freeze(traced_model)
+    model.train()
+    return traced_model
 
-    def forward(self, x):
-        # print(np.abs(x.detach().numpy().std(axis=0)).mean())
-        x = F.relu(self.conv1(x))
-        x = F.relu(self.conv2(x))
-        x = F.relu(self.conv3(x))
-        x = torch.flatten(x, 1)     # flatten all dimensions except batch
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
-        x = self.tanh(x)
-        # print(np.abs(x.detach().numpy().std(axis=0)).mean())
-        # print("-------------")
-        return x
+
+# class Net(nn.Module):
+#     def __init__(self):
+#         super().__init__()
+#         self.conv1 = nn.Conv2d(2, 256, 3, padding="same")
+#         self.conv2 = nn.Conv2d(256, 256, 3)
+#         self.conv3 = nn.Conv2d(256, 16, 1)
+#         self.fc1 = nn.Linear(400, 800)
+#         self.fc2 = nn.Linear(800, 256)
+#         self.fc3 = nn.Linear(256, 1)
+#         self.tanh = nn.Tanh()
+#
+#     def forward(self, x):
+#         # print(np.abs(x.detach().numpy().std(axis=0)).mean())
+#         x = F.relu(self.conv1(x))
+#         x = F.relu(self.conv2(x))
+#         x = F.relu(self.conv3(x))
+#         x = torch.flatten(x, 1)     # flatten all dimensions except batch
+#         x = F.relu(self.fc1(x))
+#         x = F.relu(self.fc2(x))
+#         x = self.fc3(x)
+#         x = self.tanh(x)
+#         # print(np.abs(x.detach().numpy().std(axis=0)).mean())
+#         # print("-------------")
+#         return x
 
 
 class SmallNet(nn.Module):
@@ -55,6 +67,7 @@ class SmallNet(nn.Module):
         # print("-------------")
         return x
 
+
 class FFNet(nn.Module):
     def __init__(self, input_size):
         super().__init__()
@@ -72,6 +85,9 @@ class FFNet(nn.Module):
         x = self.fc4(x)
         x = self.tanh(x)
         return x
+
+    def test(self, x):
+        return self.fc2(x)
 
 
 class MiniNet(nn.Module):
@@ -96,7 +112,7 @@ class MiniNet(nn.Module):
         return x
 
 
-def load_model(model_path, ModelClass):
+def load_model_from_file(model_path, ModelClass):
     model = ModelClass()
     model.load_state_dict(torch.load(model_path))
     model.eval()
@@ -107,10 +123,10 @@ def save_model(model, model_path):
     torch.save(model.state_dict(), model_path)
 
 
-def train(model, traindata, batch_size=32, lr=0.0001, num_workers=0, total_epoch=25):
+def train(model, traindata, batch_size=32, lr=0.0001, weight_decay=0, num_workers=0, total_epoch=25):
     # criterion = nn.BCELoss()
     criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=lr)
+    optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
     trainloader = DataLoader(traindata, batch_size=batch_size, shuffle=True, num_workers=num_workers)
     for epoch in range(total_epoch):  # loop over the dataset multiple times
         running_loss = 0.0

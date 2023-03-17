@@ -172,7 +172,6 @@ Point MCTS_AI::get_move(Point prev_move)
     else if (mode == "greedy_post")
     {
         current_node = posterior_selection(current_node);
-        std::cout << "PLAY " << current_node->move.to_string() << std::endl;
     }
     else if (mode == "greedy")
     {

@@ -1,7 +1,8 @@
 #include "tree.h"
 
 
-std::string TreeNode::to_string() const {
+std::string TreeNode::to_string() const 
+{
     return "TreeNode: " + move.to_string() + " player: " + CHAR_P[player];
 }
 

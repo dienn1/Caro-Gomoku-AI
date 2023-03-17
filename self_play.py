@@ -1,11 +1,18 @@
 from Caro_pybind import Caro, Point
 from MCTS_pybind import MCTS_AI
+from MCTS import MCTS
 from data_handler import save_raw_data, create_data_point, board_to_np, np_board_to_tensor, process_board
+from model import optimize_model, SmallNet
 import time
 import numpy as np
+import torch
+# from pathos.helpers import mp
+import torch.multiprocessing as mp
+import random
 
 
 def get_evaluate_function(model):
+
     def evaluate(board, dim):
         board = process_board(board, dim)
         board = board_to_np(board, dim=len(board))
@@ -23,96 +30,17 @@ def mse_loss(pred, label, axis=None):
     return loss
 
 
-# Return data points from self-play (deprecated)
-def self_play(dim, count, play_count, n_sim1, min_visit1, eval1, mode1, n_sim2, min_visit2, eval2, mode2, outfile=None,
-              verbose=False, eval_model=None, loss=mse_loss):
-    x_win = 0
-    data_count = 0
-    data_points = list()
-    preds = list()
-    labels = list()
-    for i in range(play_count):
-        total_t = time.time()
-        caro_board = Caro(dim, count)
-        caro_board.disable_print()
-        mcts_ai = MCTS_AI(1, min_visit1, n_sim1, caro_board, _eval=eval1, _mode=mode1)
-        mcts_ai2 = MCTS_AI(-1, min_visit2, n_sim2, caro_board, _eval=eval2, _mode=mode2)
-        while not caro_board.has_ended():
-            t = time.time()
-            caro_board.play(mcts_ai.get_move(caro_board.get_prev_move()))
-            label = mcts_ai.predicted_reward()
-            pred = float(eval_model(caro_board.get_board(), caro_board.get_dim()))
-            if loss:
-                labels.append(label)
-                preds.append(pred)
-            if verbose:
-                print(time.time() - t, "SECONDS")
-                print("DEPTH:", mcts_ai.get_tree_depth())
-                print("X PLAYED", caro_board.get_prev_move(), "with predicted reward", label)
-                if eval_model:
-                    print("MODEL REWARD PREDICTION:", pred)
-                print(caro_board)
-            data_points.append(create_data_point(mcts_ai.predicted_reward(), caro_board.get_board(), caro_board.get_dim()))
-            if outfile:
-                save_raw_data(outfile, mcts_ai.predicted_reward(), caro_board.get_board(), caro_board.get_dim())
-            data_count += 1
-
-            if caro_board.has_ended():
-                continue
-
-            t = time.time()
-            caro_board.play(mcts_ai2.get_move(caro_board.get_prev_move()))
-            label = mcts_ai2.predicted_reward()
-            pred = float(eval_model(caro_board.get_board(), caro_board.get_dim()))
-            if loss:
-                labels.append(label)
-                preds.append(pred)
-            if verbose:
-                print(time.time() - t, "SECONDS")
-                print("DEPTH:", mcts_ai2.get_tree_depth())
-                print("O PLAYED", caro_board.get_prev_move(), "with predicted reward", label)
-                if eval_model:
-                    print("MODEL REWARD PREDICTION:", pred)
-                print(caro_board)
-            data_points.append(create_data_point(mcts_ai2.predicted_reward(), caro_board.get_board(), caro_board.get_dim()))
-            if outfile:
-                save_raw_data(outfile, mcts_ai2.predicted_reward(), caro_board.get_board(), caro_board.get_dim())
-            data_count += 1
-
-        if caro_board.get_state() == 1:
-            print("X WON")
-            x_win += 1
-        elif caro_board.get_state() == -1:
-            print("O WON")
-        else:
-            print("TIE")
-        print(caro_board)
-        print("GAME ENDED IN", time.time() - total_t, "SECONDS")
-        if verbose:
-            print("AI1 has average", mcts_ai.average_child_count(), "children per expanded node")
-            print("AI1 has average", mcts_ai2.average_child_count(), "children per expanded node")
-        print("------------------------------------------------------------------------\n")
-
-    if verbose:
-        print(x_win / play_count)
-    if loss:
-        avg_loss = loss(preds, labels)
-        print("AVERAGE LOSS OVER", len(preds), "MOVE:", avg_loss)
-    if outfile:
-        outfile.write(str(data_count) + "\n")
-    return data_points
-
-
 class SelfPlay:
     def __init__(self, dim, count, AI1_params, AI2_params,
-                 outfile=None, verbose=False, eval_model=None, loss=mse_loss, reward_outcome=False):
+                 outfile_path=None, verbose=False, eval_model=None, loss=mse_loss, reward_outcome=False,
+                 num_workers=1, queue=None, worker_id=0, torch_optimize=False):
         self.dim = dim
         self.count = count
         self.AI1_params = AI1_params
         self.AI2_params = AI2_params
         self.caro_board = None
+        self.torch_optimize = torch_optimize
 
-        self.outfile = outfile
         self.verbose = verbose
         self.eval_model = eval_model
         self.loss = loss
@@ -126,6 +54,16 @@ class SelfPlay:
         self.data_points = list()
         self.preds = list()
         self.labels = list()
+
+        self.worker_id = worker_id
+        self.queue = queue
+        self.num_workers = num_workers
+        self.processes = list()
+
+        self.outfile_path = outfile_path
+        self.outfile = None
+        if self.outfile_path:
+            self.outfile = open(self.outfile_path + "-" + str(self.worker_id) + ".txt", 'a')
 
     @staticmethod
     def player_symbol(player):
@@ -152,6 +90,9 @@ class SelfPlay:
             if self.eval_model:
                 print("MODEL REWARD PREDICTION:", pred)
             print(self.caro_board)
+
+        print("PLAY worker", self.worker_id, time.time() - t, "SECONDS", flush=True)
+
         if not self.reward_outcome:
             self.data_points.append(create_data_point(AI.predicted_reward(), self.caro_board.get_board(), self.dim))
             if self.outfile:
@@ -168,31 +109,55 @@ class SelfPlay:
                 save_raw_data(self.outfile, outcome, b, self.dim)
         self.board_history = list()
 
-    def self_play(self, play_count):
-        for i in range(play_count):
-            print("GAME", i+1)
-            total_t = time.time()
-            self.caro_board = Caro(self.dim, self.count)
-            self.caro_board.disable_print()
-            mcts_ai = MCTS_AI(1, self.AI1_params["min_visit"], self.AI1_params["n_sim"], self.caro_board,
-                              _ai_moves_range=self.AI1_params["AI_move_range"],
-                              _eval=self.AI1_params["eval"], _mode=self.AI1_params["mode"])
-            mcts_ai2 = MCTS_AI(-1, self.AI2_params["min_visit"], self.AI2_params["n_sim"], self.caro_board,
-                               _ai_moves_range=self.AI1_params["AI_move_range"],
-                               _eval=self.AI2_params["eval"], _mode=self.AI2_params["mode"])
+    @staticmethod
+    def init_self_play_worker(play_count, dim, count, AI1_params, AI2_params,
+                              outfile_path, reward_outcome, queue, worker_id):
+        self_play_worker = SelfPlay(dim, count, AI1_params, AI2_params,
+                                    outfile_path, reward_outcome=reward_outcome,
+                                    queue=queue, worker_id=worker_id)
+        print("Initialized worker " + str(worker_id), flush=True)
+        self_play_worker.start(play_count)
 
-            while not self.caro_board.has_ended():
-                self.play(mcts_ai)
-                if self.caro_board.has_ended():
-                    continue
-                self.play(mcts_ai2)
+    # push self.data_points and result to queue, then clean self.data_points
+    def push_data_to_queue(self, game_result):
+        self.queue.put({"data": self.data_points, "result": game_result})
+        self.data_points = list()
 
-            game_result = self.caro_board.get_state()
-            if self.reward_outcome:
-                self.store_board_outcome(game_result)
+    def handle_queue(self):
+        pass
 
-            self.total_game_count += 1
-            self.result[game_result] += 1
+    def _self_play(self, i=0):
+        # print("GAME", i+1)
+        total_t = time.time()
+        self.caro_board = Caro(self.dim, self.count)
+        self.caro_board.disable_print()
+        random_threshold1 = self.AI1_params["random_threshold"] #+ random.randint(0, 1)
+        random_threshold2 = self.AI2_params["random_threshold"] #+ random.randint(0, 1)
+        mcts_ai = MCTS_AI(1, self.AI1_params["min_visit"], self.AI1_params["n_sim"], self.caro_board,
+                          _ai_moves_range=self.AI1_params["AI_move_range"],
+                          _eval=self.AI1_params["eval"], _mode=self.AI1_params["mode"],
+                          _random_threshold=random_threshold1,)
+        mcts_ai2 = MCTS_AI(-1, self.AI2_params["min_visit"], self.AI2_params["n_sim"], self.caro_board,
+                           _ai_moves_range=self.AI1_params["AI_move_range"],
+                           _eval=self.AI2_params["eval"], _mode=self.AI2_params["mode"],
+                           _random_threshold=random_threshold2,)
+
+        while not self.caro_board.has_ended():
+            self.play(mcts_ai)
+            if self.caro_board.has_ended():
+                break
+            self.play(mcts_ai2)
+
+        game_result = self.caro_board.get_state()
+        if self.reward_outcome:
+            self.store_board_outcome(game_result)
+        self.total_game_count += 1
+        self.result[game_result] += 1
+
+        if self.worker_id > 0 and self.queue is not None:
+            self.push_data_to_queue(game_result)
+
+        if self.verbose:
             if game_result == 1:
                 print("X WON")
             elif game_result == -1:
@@ -201,13 +166,66 @@ class SelfPlay:
                 print("TIE")
             print(self.caro_board)
             print("GAME ENDED IN", time.time() - total_t, "SECONDS")
-            if self.verbose:
-                print("AI1 has average", mcts_ai.average_child_count(), "children per expanded node")
-                print("AI1 has average", mcts_ai2.average_child_count(), "children per expanded node")
+            print("AI1 has average", mcts_ai.average_child_count(), "children per expanded node")
+            print("AI1 has average", mcts_ai2.average_child_count(), "children per expanded node")
             print("-----------------------------------------")
 
-        if self.verbose:
-            print(self.result)
+    def start(self, play_count):
+        total_play_count = play_count
+        if self.num_workers > 1:    # Start multiprocess for self-play
+            self.queue = mp.SimpleQueue()
+            distributed_play_count = int(total_play_count/self.num_workers)
+            r = total_play_count - distributed_play_count * self.num_workers
+            play_count = distributed_play_count + r
+            for worker_id in range(1, self.num_workers):
+                process = mp.Process(target=self.init_self_play_worker, args=(distributed_play_count,
+                                                                              self.dim, self.count,
+                                                                              self.AI1_params, self.AI2_params,
+                                                                              self.outfile_path, self.reward_outcome,
+                                                                              self.queue, worker_id))
+                self.processes.append(process)
+                process.start()
+            print("Multiprocess started.")
+
+        # print("INITIALIZING AI worker", self.worker_id)
+        # Initialize AI
+        for AI_params in (self.AI1_params, self.AI2_params):
+            if AI_params["model_state_dict"] is not None:
+                model = SmallNet()
+                print("LOADING MODEL FROM STATE_DICT, worker", self.worker_id)
+                model.load_state_dict(AI_params["model_state_dict"])
+                print("MODEL LOADED, worker", self.worker_id)
+                if self.torch_optimize:
+                    model = optimize_model(model)
+                AI_params["eval"] = get_evaluate_function(model)
+        # print("INITIALIZED AI worker", self.worker_id)
+
+        retrieved_count = 0
+        for i in range(play_count):
+            self._self_play(i)
+            print("GAME DONE " + str(i) + " worker_id " + str(self.worker_id), flush=True)
+            if self.worker_id == 0 and self.num_workers > 1:
+                while self.queue is not None and not self.queue.empty():
+                    msg = self.queue.get()
+                    self.data_points.extend(msg["data"])
+                    self.result[msg["result"]] += 1
+                    retrieved_count += 1
+                    # print("GAME " + str(i + retrieved_count) + " retrieved")
+
+        if self.worker_id > 0:
+            return
+
+        while retrieved_count + play_count < total_play_count:
+            while self.queue is not None and not self.queue.empty():
+                msg = self.queue.get()
+                self.data_points.extend(msg["data"])
+                self.result[msg["result"]] += 1
+                retrieved_count += 1
+
+        for p in self.processes:
+            p.join()
+
+        print(self.result)
         if self.loss and self.eval_model:
             avg_loss = self.loss(self.preds, self.labels)
             print("AVERAGE LOSS OVER", len(self.preds), "MOVE:", avg_loss)

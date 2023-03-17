@@ -1,7 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" remoteFilesAllowedToDisappearOnAutoupload="false">
+  <component name="PublishConfigData" autoUpload="Always" exclude=".svn;.cvs;.idea;.DS_Store;.git;.hg;*.hprof;*.pyc;.vs" autoUploadExternalChanges="true">
     <serverData>
+      <paths name="dienn1@neuromancer.ics.uci.edu:22 password">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/home/dienn1/rl-caro" local="$PROJECT_DIR$" />
+          </mappings>
+          <excludedPaths>
+            <excludedPath local="true" path="$PROJECT_DIR$/Caro_pybind/out" />
+            <excludedPath local="true" path="$PROJECT_DIR$/Caro_pybind/.vs" />
+          </excludedPaths>
+        </serverdata>
+      </paths>
       <paths name="dienn1@openlab.ics.uci.edu:22">
         <serverdata>
           <mappings>
@@ -10,5 +21,6 @@
         </serverdata>
       </paths>
     </serverData>
+    <option name="myAutoUpload" value="ALWAYS" />
   </component>
 </project>

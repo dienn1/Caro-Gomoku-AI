@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef CARO_CPP_CARO_H
 #define CARO_CPP_CARO_H
 
@@ -58,6 +60,11 @@ public:
     {
         if (i == 0){ return X;}
         else { return Y; }
+    }
+
+    size_t hash() const
+    {
+        return (size_t)X << 2 | Y;
     }
 };
 

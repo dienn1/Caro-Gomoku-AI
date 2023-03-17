@@ -16,10 +16,15 @@ PYBIND11_MODULE(Caro_pybind, m)
 		.def(py::self - py::self)
 		.def(py::self == py::self)
 		.def(py::self < py::self)
-		.def("__call__", &Point::operator());
+		.def("__call__", &Point::operator())
+		.def("__hash__", &Point::hash);
 
 	py::class_<Caro>(m, "Caro")
 		.def(py::init<int, int, int>(), py::arg("_dim") = 19, py::arg("count") = 5, py::arg("_ai_moves_range") = 1)
+		.def("__copy__", [](const Caro& self)
+			{
+				return Caro(self);
+			})
 		.def("__str__", &Caro::to_string)
 		.def("simulate", &Caro::simulate, py::arg("n_turns") = -1)
 		.def("disable_print", &Caro::disable_print)

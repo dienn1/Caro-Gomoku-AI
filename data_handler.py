@@ -1,16 +1,16 @@
 import numpy as np
 import torch
 from torch.utils.data import Dataset
-from model import Net, train, load_model
-import time
+from model import train, load_model_from_file
 
 
 class BoardDataLoader(Dataset):
     def __init__(self, data, max_recall, no_duplicate=False):   # data format: [np_board, reward]
-        if len(data) < max_recall:
+        self.max_recall = max_recall    # max_recall only applies if no_duplicate=False
+        if len(data) < self.max_recall:
             self.data = data
         else:
-            self.data = data[-max_recall::1]
+            self.data = data[-self.max_recall::1]
         self.no_duplicate = no_duplicate
         if self.no_duplicate:
             self.unique_data = dict()
@@ -41,6 +41,8 @@ class BoardDataLoader(Dataset):
     def append(self, d):
         if not self.no_duplicate:
             self.data.append(d)
+            if len(self.data) > self.max_recall:    # max_recall only applies if no_duplicate=False
+                self.data = self.data[-self.max_recall::1]
             return
         hashed_d = BoardDataLoader.hash_tensor(d[0])
         if hashed_d not in self.unique_data:
@@ -54,6 +56,11 @@ class BoardDataLoader(Dataset):
             self.data[self.unique_data[hashed_d]["index"]] = [self.unique_data[hashed_d]["tensor"], self.unique_data[hashed_d]["reward"]]
 
     def extend(self, data):
+        if not self.no_duplicate:   # max_recall only applies if no_duplicate=False
+            self.data.extend(data)
+            if len(self.data) > self.max_recall:
+                self.data = self.data[-self.max_recall::1]
+            return
         for d in data:
             self.append(d)
 
@@ -67,6 +74,17 @@ class BoardDataLoader(Dataset):
         for i in idx:
             sample.append([self.data[i][0], self.data[i][1]])
         return sample
+
+    def mean(self):
+        return np.mean(list(self.data[i][1] for i in range(len(self.data))))
+
+    def result_distribution(self):
+        res_dict = {-1: 0, 0: 0, 1: 0}
+        for i in range(len(self.data)):
+            res = self.data[i][1]
+            if res in res_dict:
+                res_dict[res] += 1
+        return res_dict
 
 
 def load_raw_board_data(data_path):
@@ -125,11 +143,11 @@ def np_board_to_tensor_batch(np_data, unsqueeze=False):
         np_data[i][0] = np_board_to_tensor(np_data[i][0], unsqueeze=unsqueeze)
 
 
-def save_raw_data(f, reward, board_array, dim):
+def save_raw_data(f, reward, raw_board_array, dim):
     res = ""
     for i in range(dim):
         for j in range(dim):
-            tmp = board_array[i][j]
+            tmp = raw_board_array[i][j]
             if tmp < 0:
                 tmp = 2
             res += str(tmp) + " "
@@ -138,12 +156,12 @@ def save_raw_data(f, reward, board_array, dim):
     f.write(res)
 
 
-def process_board(board_array, dim=15):
+def process_board(raw_board_array, dim=15):
     res = list()
     for i in range(dim):
         row = list()
         for j in range(dim):
-            tmp = board_array[i][j]
+            tmp = raw_board_array[i][j]
             if tmp < 0:
                 tmp = 2
             row.append(tmp)
@@ -166,13 +184,7 @@ def load_data(data_dir, data_count=10000, no_duplicate=False):
     return traindata
 
 
-def load_data_and_train(data_dir, model, data_count=10000, lr=0.0001, batch_size=32, total_epoch=5, no_duplicate=False):
-    traindata = load_data(data_dir, data_count=data_count, no_duplicate=no_duplicate)
-    train(model, traindata, total_epoch=total_epoch, batch_size=batch_size, lr=lr)
-    return traindata
-
-
-def batch_load_data_and_train(parent_dir, model, first, last=None, lr=0.0001, batch_size=64, total_epoch=100):
+def batch_load_data(parent_dir, first, last=None, data_count=10000, no_duplicate=False):
     if last is None:
         last = first
     data = list()
@@ -181,13 +193,35 @@ def batch_load_data_and_train(parent_dir, model, first, last=None, lr=0.0001, ba
         board_data = load_raw_board_data(data_dir)
         transformed_board_data = raw_data_transform(board_data)
         data.extend(transformed_board_data)
-    traindata = BoardDataLoader(data, 1000)
-    train(model, traindata, lr=lr, batch_size=batch_size, total_epoch=total_epoch)
-    return data
+    traindata = BoardDataLoader(data, data_count, no_duplicate=no_duplicate)
+    return traindata
+
+
+def load_data_and_train(data_dir, model, data_count=10000, lr=0.0001, weight_decay=0,
+                        batch_size=32, total_epoch=5, no_duplicate=False, num_workers=0):
+    traindata = load_data(data_dir, data_count=data_count, no_duplicate=no_duplicate)
+    train(model, traindata, total_epoch=total_epoch, batch_size=batch_size, lr=lr, weight_decay=weight_decay,
+          num_workers=num_workers)
+    return traindata
+
+
+def batch_load_data_and_train(parent_dir, model, first, last=None, data_count=10000, no_duplicate=False,
+                              lr=0.0001, weight_decay=0, batch_size=64, total_epoch=100):
+    # if last is None:
+    #     last = first
+    # data = list()
+    # for i in range(first, last + 1):
+    #     data_dir = parent_dir + "pass" + str(i) + ".txt"
+    #     board_data = load_raw_board_data(data_dir)
+    #     transformed_board_data = raw_data_transform(board_data)
+    #     data.extend(transformed_board_data)
+    traindata = batch_load_data(parent_dir, first, last, data_count, no_duplicate)
+    train(model, traindata, lr=lr, batch_size=batch_size, total_epoch=total_epoch, weight_decay=weight_decay)
+    return traindata
 
 
 def load_model_and_train(parent_dir, model_name, first, last=None, lr=0.0001, batch_size=64, total_epoch=100):
-    model = load_model(parent_dir + model_name)
+    model = load_model_from_file(parent_dir + model_name)
     data = batch_load_data_and_train(parent_dir, model, first, last, lr=lr, batch_size=batch_size, total_epoch=total_epoch)
     return model, data
 

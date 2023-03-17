@@ -5,7 +5,7 @@ class Point:
     def __str__(self):
         pass
 
-    def __call__(self) -> Point:
+    def __call__(self, i: int) -> int:
         pass
 
 

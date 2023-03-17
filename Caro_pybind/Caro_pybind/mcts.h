@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef CARO_CPP_MCTS_H
 #define CARO_CPP_MCTS_H
 
@@ -6,7 +8,7 @@
 #include <cmath>
 #include <functional>
 #include <cstdlib>
-#include <time.h>
+#include <ctime>
 #include "constants.h"
 #include <string>
 #include <random>

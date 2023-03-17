@@ -28,7 +28,7 @@ public:
         {
             turn_count = _turn_count;
         }
-        if (parent == nullptr)
+        else if (parent == nullptr)
         {
             turn_count = 0;
         }

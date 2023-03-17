@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="c498c621-063c-46dc-838f-6809882c188d" name="dienn1@neuromancer.ics.uci.edu:22 password">
+        <fileTransfer accessType="SFTP" host="neuromancer.ics.uci.edu" port="22" sshConfigId="16005f48-b882-4897-9b31-6d9e96d2bcc7" sshConfig="dienn1@neuromancer.ics.uci.edu:22 password" />
+      </webServer>
+    </option>
+  </component>
+</project>
