@@ -82,8 +82,6 @@ if __name__ == "__main__":
     print()
     start_pass = 0
     optimizer = None
-    # self_play_eval_results = {"prev_eval": list(), "prev_10_eval": list()}
-    # param_buffer = Buffer(11)
     param = get_param(nn_model)
 
     for i in range(start_pass, start_pass + training_pass):
@@ -111,13 +109,6 @@ if __name__ == "__main__":
                       "rollout_weight": rollout_weight,
                       "random_transform": False,
                       "eval": None}
-        # AI2_params = {"n_sim": 400,
-        #               "min_visit": 1,
-        #               "AI_move_range": AI_move_range,
-        #               "mode": self_play_mode,
-        #               "random_threshold": random_threshold,
-        #               "model_param": deepcopy(param),
-        #               "eval": None}
 
         game_master = GameMaster(dim, count, AI1_params, AI2_params=None, self_play_mode=self_play_mode,
                                  num_workers=num_workers,
@@ -136,21 +127,6 @@ if __name__ == "__main__":
         print("Training with " + str(len(traindata)) + " ")
         optimizer = train(nn_model, traindata, optimizer=optimizer, lr=learning_rate, weight_decay=weight_decay,
                           batch_size=batch_size, total_epoch=epoch, num_workers=0)
-
-        # param = get_param(nn_model)
-        # param_buffer.append(param)
-        # print()
-        # # Self-play Eval
-        # if len(param_buffer) >= 2:
-        #     print(f"Self-play eval pass {i} against pass {i-1}")
-        #     param1, param2 = param_buffer[-1], param_buffer[-2]
-        #     r = self_play_eval(dim, count, self_play_eval_play_count, param1, param2, num_workers=num_workers)
-        #     self_play_eval_results["prev_eval"].append(r)
-        # if len(param_buffer) >= param_buffer.capacity:
-        #     print(f"Self-play eval pass {i} against pass {i - param_buffer.capacity + 1}")
-        #     param1, param2 = param_buffer[-1], param_buffer[0]
-        #     r = self_play_eval(dim, count, self_play_eval_play_count, param1, param2, num_workers=num_workers)
-        #     self_play_eval_results["prev_10_eval"].append(r)
 
         if i % checkpoint_interval == 0:
             torch.save(nn_model.state_dict(), output_path)

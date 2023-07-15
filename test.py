@@ -38,18 +38,17 @@ if __name__ == "__main__":
     dim = 7
     count = 5
     play_count = num_workers * 2
-    # swap_size = False
 
     PATH = "training_data/"
     SUB_PATH = "Test7x7/"
 
-    NN_NAME = "attempt22/ValueNet_model_400_360_pass15.pt"
-    NN_PATH = PATH + SUB_PATH + NN_NAME
-    nn_model = load_model_from_file(NN_PATH, SmallNet)
-
-    NN_NAME2 = "attempt16/ValueNet_model_400_360_pass20.pt"
-    NN_PATH2 = PATH + SUB_PATH + NN_NAME2
-    nn_model2 = load_model_from_file(NN_PATH2, SmallNet)
+    # NN_NAME = "attempt22/ValueNet_model_400_360_pass15.pt"
+    # NN_PATH = PATH + SUB_PATH + NN_NAME
+    # nn_model = load_model_from_file(NN_PATH, SmallNet)
+    #
+    # NN_NAME2 = "attempt16/ValueNet_model_400_360_pass20.pt"
+    # NN_PATH2 = PATH + SUB_PATH + NN_NAME2
+    # nn_model2 = load_model_from_file(NN_PATH2, SmallNet)
 
     # data_path = PATH + SUB_PATH + "generated_pair_states_20000.txt"
     # data_path = PATH + SUB_PATH + "warm_up_1000.txt"
@@ -65,8 +64,8 @@ if __name__ == "__main__":
     # exit()
     # del data
 
-    param1 = get_param(nn_model)
-    param2 = get_param(nn_model2)
+    # param1 = get_param(nn_model)
+    # param2 = get_param(nn_model2)
 
     AI_move_range = 1
     random_threshold = 4
