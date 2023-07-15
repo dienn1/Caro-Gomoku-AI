@@ -1,47 +1,102 @@
-#pragma once
-
 #include "model.h"
 
-typedef Eigen::Array<float, 3, 3>  Array33f;
-typedef Eigen::Vector<float, 256> Vector256f;
-typedef Eigen::Array<float, 1, 1> Array11f;
-typedef Eigen::Vector<float, 16> Vector16f;
-typedef Eigen::Vector<float, 5> Vector5f;
-
-//typedef py::array_t<float> NumpyArray;
-
-
-float SmallNetTest(Array77f(&example_input)[2], 
-	const Array33f(&conv1Weights)[256 * 2], const Vector256f& conv1Bias, 
-	const Array11f(&conv2Weights)[16 * 256], const Vector16f& conv2Bias,
-	const MatrixXf& fc1Weights, const VectorXf& fc1Bias, 
-	const MatrixXf& fc2Weights, const VectorXf& fc2Bias, 
-	const MatrixXf& fc3Weights, const VectorXf& fc3Bias)
+MatrixXf Relu(const MatrixXf& x)
 {
-	SmallNet model(conv1Weights, conv1Bias, conv2Weights, conv2Bias, fc1Weights, fc1Bias, fc2Weights, fc2Bias, fc3Weights, fc3Bias);
-
-	auto t = std::time(NULL);
-	const int N = 10000;
-	float out = model.forward(example_input);
-	for (int i = 0; i < N; i++)
+	MatrixXf A(x.rows(), x.cols());
+	for (int i = 0; i < x.size(); ++i)
 	{
-		out = model.forward(example_input);
+		if (x(i) < 0)
+		{
+			A(i) = 0;
+		}
+		else
+		{
+			A(i) = x(i);
+		}
 	}
-	std::cout << time(NULL) - t << "\n";
-
-	return out;
+	return std::move(A);
 }
 
+float TestNet::forward(const Array77f(&x)[2])
+{
+	auto x1 = conv1(x);
+	conv1.Relu(x1);
 
-float py_SmallNetTest(NumpyArray example_input,
-	const NumpyArray conv1Weights, const NumpyArray conv1Bias,
+	VectorXf flatten_x1(125);
+	for (int i = 0; i < 5; i++)
+	{
+		for (int j = 0; j < 5; j++)
+		{
+			for (int k = 0; k < 5; k++)
+			{
+				flatten_x1(i * 5 * 5 + j * 5 + k) = x1[i](j, k);
+			}
+		}
+	}
+
+	delete[] x1;
+
+	auto x2 = Relu(fc1(flatten_x1));
+	auto x3 = fc2(x2);
+
+	return tanh(x3(0));
+}
+
+float SmallNet::forward(const Array77f(&x)[2])
+{
+	auto x1 = conv1(x);
+	conv1.Relu(x1);
+	auto x2 = conv2(x1);
+	conv2.Relu(x2);
+
+	VectorXf flatten_x2(400);
+	for (int i = 0; i < 16; i++)
+	{
+		for (int j = 0; j < 5; j++)
+		{
+			for (int k = 0; k < 5; k++)
+			{
+				flatten_x2(i * 5 * 5 + j * 5 + k) = x2[i](j, k);
+			}
+		}
+	}
+
+	auto x3 = Relu(fc1(flatten_x2));
+	auto x4 = Relu(fc2(x3));
+	auto x5 = fc3(x4);
+
+	delete[] x1;
+	delete[] x2;
+
+	return tanh(x5(0));
+}
+
+float SmallNet::py_forward(NumpyArray py_input)
+{
+	Array77f input_eigen[2];
+
+	// convert input
+	auto t_input = py_input.unchecked<3>();
+	for (int i = 0; i < 2; i++)
+	{
+		for (int j = 0; j < 7; j++)
+		{
+			for (int k = 0; k < 7; k++)
+			{
+				input_eigen[i](j, k) = t_input(i, j, k);
+			}
+		}
+	}
+
+	return forward(input_eigen);
+}
+
+SmallNet SmallNet::py_Create(const NumpyArray conv1Weights, const NumpyArray conv1Bias,
 	const NumpyArray conv2Weights, const NumpyArray conv2Bias,
 	const NumpyArray fc1Weights, const NumpyArray fc1Bias,
 	const NumpyArray fc2Weights, const NumpyArray fc2Bias,
 	const NumpyArray fc3Weights, const NumpyArray fc3Bias)
 {
-	Array77f input_eigen[2];
-
 	Array33f conv1Weights_eigen[256 * 2];
 	Vector256f conv1Bias_eigen;
 
@@ -56,19 +111,6 @@ float py_SmallNetTest(NumpyArray example_input,
 
 	MatrixXf fc3Weights_eigen(1, 256);
 	VectorXf fc3Bias_eigen(1);
-
-	// convert input
-	auto t_input = example_input.unchecked<3>();
-	for (int i = 0; i < 2; i++)
-	{
-		for (int j = 0; j < 7; j++)
-		{
-			for (int k = 0; k < 7; k++)
-			{
-				input_eigen[i](j, k) = t_input(i, j, k);
-			}
-		}
-	}
 
 	// convert conv1Weights
 	auto t_conv1Weights = conv1Weights.unchecked<4>();
@@ -141,12 +183,9 @@ float py_SmallNetTest(NumpyArray example_input,
 		fc3Weights_eigen(0, j) = t_fc3Weights(0, j);
 	}
 
-	float out = SmallNetTest(input_eigen,
-		conv1Weights_eigen, conv1Bias_eigen,
+	return SmallNet(conv1Weights_eigen, conv1Bias_eigen,
 		conv2Weights_eigen, conv2Bias_eigen,
 		fc1Weights_eigen, fc1Bias_eigen,
 		fc2Weights_eigen, fc2Bias_eigen,
 		fc3Weights_eigen, fc3Bias_eigen);
-
-	return out;
 }

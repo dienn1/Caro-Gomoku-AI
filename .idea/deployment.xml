@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="dienn1@neuromancer.ics.uci.edu:22 password" exclude=".svn;.cvs;.idea;.DS_Store;.git;.hg;*.hprof;*.pyc;.vs" autoUploadExternalChanges="true">
+  <component name="PublishConfigData" autoUpload="Always" serverName="dienn1@neuromancer.ics.uci.edu:22 password" exclude=".svn;.cvs;.idea;.DS_Store;.git;.hg;*.hprof;*.pyc;.vs" confirmBeforeDeletion="false" autoUploadExternalChanges="true">
+    <option name="confirmBeforeDeletion" value="false" />
     <serverData>
       <paths name="dienn1@neuromancer.ics.uci.edu:22 password">
         <serverdata>

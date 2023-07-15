@@ -4,7 +4,7 @@
 #include <Eigen>
 #include <ctime>
 #include <math.h>
-
+#include <pybind11/numpy.h>
 
 using Eigen::MatrixXf;
 using Eigen::VectorXf;
@@ -12,24 +12,8 @@ using Eigen::ArrayXXf;
 using Eigen::Array33f;
 typedef Eigen::Array<float, 7, 7> Array77f;
 
-
-MatrixXf Relu(const MatrixXf& x)
-{
-	MatrixXf A(x.rows(), x.cols());
-	for (int i = 0; i < x.size(); ++i)
-	{
-		if (x(i) < 0) 
-		{
-			A(i) = 0;
-		}
-		else
-		{
-			A(i) = x(i);
-		}
-	}
-	return std::move(A);
-}
-
+namespace py = pybind11;
+typedef py::array_t<float> NumpyArray;
 
 
 template <unsigned int in_features, unsigned int out_features>
@@ -68,7 +52,6 @@ class Convolve
 
 	typedef Eigen::Array<float, input_size, input_size> ArrayInput;
 
-
 	const static unsigned int out_dim = input_size - kernel_size + 1;
 	typedef Eigen::Array<float, out_dim, out_dim> ArrayOutput;
 
@@ -84,7 +67,6 @@ public:
 		bias = _bias;
 	}
 
-	
 	ArrayOutput* operator()(const ArrayInput* x)
 	{
 		ArrayOutput* out = new ArrayOutput[out_channels];
@@ -154,34 +136,16 @@ public:
 
 	}
 
-	float forward(const Array77f(&x)[2])
-	{
-		auto x1 = conv1(x);
-		conv1.Relu(x1);
-		auto x2 = conv2(x1);
-		conv2.Relu(x2);
+	// Python-binding factory function
+	static SmallNet py_Create(const NumpyArray conv1Weights, const NumpyArray conv1Bias,
+		const NumpyArray conv2Weights, const NumpyArray conv2Bias,
+		const NumpyArray fc1Weights, const NumpyArray fc1Bias,
+		const NumpyArray fc2Weights, const NumpyArray fc2Bias,
+		const NumpyArray fc3Weights, const NumpyArray fc3Bias);
 
-		VectorXf flatten_x2(400);
-		for (int i = 0; i < 16; i++)
-		{
-			for (int j = 0; j < 5; j++)
-			{
-				for (int k = 0; k < 5; k++)
-				{
-					flatten_x2(i * 5 * 5 + j * 5 + k) = x2[i](j, k);
-				}
-			}
-		}
+	float forward(const Array77f(&x)[2]);
 
-		auto x3 = Relu(fc1(flatten_x2));
-		auto x4 = Relu(fc2(x3));
-		auto x5 = fc3(x4);
-
-		delete[] x1;
-		delete[] x2;
-
-		return tanh(x5(0));
-	}
+	float py_forward(NumpyArray py_input);
 
 private:
 	Convolve<2, 256, 3, 7> conv1;
@@ -206,30 +170,7 @@ public:
 
 	}
 
-	float forward(const Array77f(&x)[2])
-	{
-		auto x1 = conv1(x);
-		conv1.Relu(x1);
-
-		VectorXf flatten_x1(125);
-		for (int i = 0; i < 5; i++)
-		{
-			for (int j = 0; j < 5; j++)
-			{
-				for (int k = 0; k < 5; k++)
-				{
-					flatten_x1(i * 5 * 5 + j * 5 + k) = x1[i](j, k);
-				}
-			}
-		}
-
-		delete[] x1;
-
-		auto x2 = Relu(fc1(flatten_x1));
-		auto x3 = fc2(x2);
-
-		return tanh(x3(0));
-	}
+	float forward(const Array77f(&x)[2]);
 
 private:
 	Convolve<2, 5, 3, 7> conv1;

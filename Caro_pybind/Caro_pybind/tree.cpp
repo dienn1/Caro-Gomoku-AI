@@ -25,8 +25,9 @@ float TreeNode::exploration_value(bool use_prior) const
     return C * sqrt(log(parent->visit_count) / (visit_count + int(use_prior)));
 }
 
+
 float TreeNode::uct() const {
-    return average_reward() + exploration_value();
+    return ((average_reward() + 1) * 0.5 + 1) + exploration_value();    // shift reward to [1, 2] to make sure UCT > 0
 }
 
 int TreeNode::get_player() const
